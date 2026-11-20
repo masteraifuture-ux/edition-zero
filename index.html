@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edition Zero AI Director — أستوديو المخرج الذكي للمتصفح</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #050811;
+            color: #f8fafc;
+        }
+        .cinema-glow { box-shadow: 0 0 40px rgba(245, 158, 11, 0.14); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090d16; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-gradient-to-b from-slate-950 via-[#080d1a] to-slate-950 overflow-x-hidden">
+
+    <header class="bg-slate-950/90 border-b border-slate-800 px-3 sm:px-6 py-3 sticky top-0 z-30 backdrop-blur-md">
+        <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2.5">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-600 flex items-center justify-center text-slate-950 font-black text-lg shadow-lg shrink-0">
+                    E0
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-sm sm:text-base font-black text-white flex flex-wrap items-center gap-1.5">
+                        <span>Edition Zero AI Director</span>
+                        <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30">مخرج ذكي · متصفح فقط</span>
+                    </h1>
+                    <p class="text-[10px] sm:text-xs text-slate-400 truncate">بحث يوتيوب + صوت دفعة واحدة + تزامن تلقائي + تدقيق بصري</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5">
+                <button onclick="toggleApiDrawer()" class="bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 text-xs font-bold px-2.5 py-1.5 rounded-lg">
+                    🔑 مفاتيح API
+                </button>
+                <button onclick="saveProjectLocal()" class="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-xs font-bold px-2.5 py-1.5 rounded-lg">
+                    حفظ
+                </button>
+                <button onclick="exportProjectJson()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg">
+                    JSON
+                </button>
+                <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg">
+                    استيراد
+                    <input type="file" accept=".json" class="hidden" onchange="importProjectJson(this.files[0])">
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <!-- مركز مفاتيح API المتعددة -->
+    <section id="apiDrawer" class="bg-slate-900/95 border-b border-emerald-500/25 px-3 sm:px-6 py-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div class="min-w-0">
+                    <h2 class="text-xs sm:text-sm font-black text-emerald-400 flex flex-wrap items-center gap-2">
+                        <span>مركز الوكلاء المتعددة (تبديل وتصحيح تلقائي عند الفشل)</span>
+                        <span id="activeAgentsCount" class="text-[10px] bg-slate-950 text-amber-300 px-2 py-0.5 rounded-full border border-slate-700">0 مفتاح</span>
+                    </h2>
+                    <p class="text-[11px] text-slate-400 break-words leading-relaxed mt-0.5">يدعم: Gemini (نص + صوت + بحث) وGroq وOpenRouter وOpenAI وClaude وxAI وPixabay وPexels وElevenLabs.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="addAgentKeySlot()" class="text-xs bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-lg">
+                        + إضافة خانة وكيل
+                    </button>
+                    <button onclick="detectAndVerifyAllKeys()" id="verifyKeysBtn" class="text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-3 py-1.5 rounded-lg">
+                        فحص وتعرّف تلقائي + حفظ
+                    </button>
+                </div>
+            </div>
+            <div id="agentKeysGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5"></div>
+        </div>
+    </section>
+
+    <main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-5 flex flex-col gap-5">
+
+        <!-- لوحة المخرج الذكي -->
+        <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-end">
+                <div class="md:col-span-5">
+                    <label class="block text-[11px] font-bold text-amber-400 mb-1">فكرة أو عنوان الحلقة الوثائقية</label>
+                    <div class="flex gap-1.5">
+                        <input id="topicInput" type="text" value="الذهب الأسود: كيف رسم البترول خريطة العالم الحديث؟" placeholder="اكتب فكرة مثلاً: انهيار العملات، تاريخ القهوة، حرب الرقائق..." class="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500">
+                        <button id="titleResearchBtn" onclick="suggestYoutubeTitles()" title="اقتراح 10 عناوين يوتيوب قوية" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-2.5 rounded-xl text-xs shrink-0 whitespace-nowrap">
+                            🔍 10 عناوين
+                        </button>
+                    </div>
+                </div>
+                <div class="md:col-span-3">
+                    <label class="block text-[11px] font-bold text-slate-300 mb-1">النمط البصري</label>
+                    <select id="channelStyleSelect" onchange="onChannelStyleChange()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2.5 text-xs text-slate-100">
+                        <option value="vox">Vox Explainer (وثائق + هايلايتر + خرائط)</option>
+                        <option value="johnny_harris">Johnny Harris (خرائط استقصائية)</option>
+                        <option value="lemmino">LEMMiNO (وثائقي مظلم سينمائي)</option>
+                        <option value="kurzgesagt">Infographic / Data (بيانات ورسوم)</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-[11px] font-bold text-slate-300 mb-1">المقاس</label>
+                    <select id="aspectRatioSelect" onchange="applyAspectRatio()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2.5 text-xs text-amber-300">
+                        <option value="16:9">16:9 يوتيوب</option>
+                        <option value="9:16">9:16 شورتس/ريلز</option>
+                        <option value="1:1">1:1 مربع</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2 flex gap-2">
+                    <select id="durationSelect" class="w-16 bg-slate-950 border border-slate-700 rounded-xl px-2 py-2.5 text-xs text-slate-200">
+                        <option value="1">1 د</option>
+                        <option value="3" selected>3 د</option>
+                        <option value="5">5 د</option>
+                    </select>
+                    <button id="aiProduceBtn" onclick="startAutonomousProduction()" class="flex-1 bg-gradient-to-l from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black px-3 py-2.5 rounded-xl text-xs shadow-lg">
+                        إنتاج تلقائي
+                    </button>
+                </div>
+            </div>
+
+            <!-- قائمة الـ 10 عناوين المقترحة -->
+            <div id="titlesSuggestionsBox" class="hidden mt-3 pt-3 border-t border-slate-800">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-black text-indigo-300">أقوى 10 عناوين مقترحة بأسلوب يوتيوب (اضغط لاختيار العنوان):</span>
+                    <button onclick="document.getElementById('titlesSuggestionsBox').classList.add('hidden')" class="text-[11px] text-slate-400 hover:text-white">إخفاء ✕</button>
+                </div>
+                <div id="titlesSuggestionsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+            </div>
+
+            <!-- شريط حالة المخرج التلقائي -->
+            <div id="pipelineStatus" class="hidden mt-3 pt-3 border-t border-slate-800">
+                <div class="flex items-center justify-between text-xs mb-1 gap-2">
+                    <span id="statusText" class="text-amber-400 font-bold truncate">جاري التحضير...</span>
+                    <span id="progressPercent" class="text-slate-400 font-mono shrink-0">0%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-950 rounded-full overflow-hidden">
+                    <div id="productionProgressBar" class="h-full bg-gradient-to-l from-amber-400 to-orange-500 w-0 transition-all duration-300"></div>
+                </div>
+                <div id="directorAuditBanner" class="hidden mt-2.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl px-3 py-2 text-[11px] text-emerald-200 leading-relaxed"></div>
+            </div>
+        </section>
+
+        <!-- الشاشة والمحرر -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <div class="lg:col-span-8 flex flex-col bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden cinema-glow">
+                <div class="bg-slate-950 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between gap-2">
+                    <span id="movieTitleDisplay" class="text-xs sm:text-sm font-bold text-amber-400 truncate">شاشة العرض</span>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span id="timecodeBadge" class="text-[11px] bg-slate-900 border border-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">00:00 / 00:00</span>
+                        <span id="sceneBadge" class="text-[11px] bg-slate-800 text-slate-200 px-2.5 py-0.5 rounded-full">المشهد 1</span>
+                    </div>
+                </div>
+
+                <div class="relative w-full aspect-video bg-black overflow-hidden flex items-center justify-center">
+                    <canvas id="cinemaCanvas" width="1280" height="720" class="w-full h-full object-contain block"></canvas>
+                </div>
+
+                <div class="bg-slate-950/90 px-3 sm:px-4 py-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <button id="playBtn" onclick="togglePlay()" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-lg text-xs">▶ تشغيل</button>
+                        <button onclick="prevScene()" class="px-2.5 py-2 bg-slate-800 text-slate-200 rounded-lg text-xs">⏮</button>
+                        <button onclick="nextScene()" class="px-2.5 py-2 bg-slate-800 text-slate-200 rounded-lg text-xs">⏭</button>
+                        <button id="muteBtn" onclick="toggleMute()" class="px-2.5 py-2 bg-slate-800 text-slate-200 rounded-lg text-xs">الصوت: مفعّل</button>
+                        <button id="musicBtn" onclick="toggleMusic()" class="px-2.5 py-2 bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 rounded-lg text-xs">موسيقى: مفعّلة</button>
+                        <button id="captionToggleBtn" onclick="toggleCaptions()" class="px-2.5 py-2 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded-lg text-xs">كاريوكي: مفعّل</button>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <button onclick="runManualAudit()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-bold">
+                            🛡 تدقيق بصري
+                        </button>
+                        <button id="exportVideoBtn" onclick="exportBrowserVideo()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-lg text-xs shadow-lg">
+                            ⬇ تصدير الفيديو
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- قائمة المشاهد والمحرر -->
+            <div class="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col h-[560px]">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+                    <div class="flex gap-1.5">
+                        <button id="tabScenesBtn" onclick="switchRightTab('scenes')" class="text-xs font-bold px-3 py-1 rounded-lg bg-amber-500 text-slate-950">المشاهد</button>
+                        <button id="tabInspectorBtn" onclick="switchRightTab('inspector')" class="text-xs font-bold px-3 py-1 rounded-lg bg-slate-800 text-slate-300">تعديل يدوي</button>
+                    </div>
+                    <button onclick="addNewScene()" class="text-[11px] bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg">+ مشهد</button>
+                </div>
+
+                <div id="scenesTabPane" class="flex-1 overflow-y-auto space-y-2.5 pl-1"></div>
+
+                <div id="inspectorTabPane" class="hidden flex-1 overflow-y-auto space-y-2.5 pl-1 text-xs">
+                    <div>
+                        <label class="block text-slate-400 mb-1">عنوان المشهد</label>
+                        <input id="editSceneTitle" oninput="updateActiveSceneField('sceneTitle', this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">نص التعليق الصوتي</label>
+                        <textarea id="editSceneNarration" rows="3" oninput="updateActiveSceneField('narration', this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-slate-400 mb-1">قالب المشهد</label>
+                            <select id="editSceneType" onchange="updateActiveSceneField('visualType', this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-amber-300">
+                                <option value="vox_highlight">Vox وثيقة + هايلايتر</option>
+                                <option value="vox_map">خريطة استقصائية</option>
+                                <option value="vox_chart">رسم بياني متحرك</option>
+                                <option value="vox_split">شاشة منقسمة (مقارنة)</option>
+                                <option value="vox_timeline">خط زمني متحرك</option>
+                                <option value="cinematic">سينمائي (Ken Burns)</option>
+                                <option value="video_clip">مقطع فيديو</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">المدة (ثانية)</label>
+                            <input id="editSceneDuration" type="number" step="0.5" min="2" max="60" oninput="updateActiveSceneField('duration', parseFloat(this.value) || 5)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-white">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">نص الهايلايتر</label>
+                        <input id="editHighlightText" oninput="updateActiveSceneVox('highlightText', this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white">
+                    </div>
+                    <div class="flex gap-2">
+                        <label class="flex-1 cursor-pointer text-center bg-amber-500/20 border border-amber-500/40 py-2 rounded-lg text-amber-200 font-bold">
+                            📁 صورة / فيديو من الهاتف
+                            <input type="file" accept="image/*,video/*" class="hidden" onchange="attachLocalFileToScene(this.files[0], 'media')">
+                        </label>
+                        <label class="flex-1 cursor-pointer text-center bg-indigo-500/20 border border-indigo-500/40 py-2 rounded-lg text-indigo-200 font-bold">
+                            🎙️ صوت من الهاتف
+                            <input type="file" accept="audio/*" class="hidden" onchange="attachLocalFileToScene(this.files[0], 'audio')">
+                        </label>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="generateSingleMasterVoice()" class="flex-1 bg-indigo-600/30 border border-indigo-500/40 py-2 rounded-lg text-indigo-200 font-bold">توليد الصوت دفعة واحدة</button>
+                        <button onclick="deleteActiveScene()" class="flex-1 bg-red-950/60 border border-red-500/40 py-2 rounded-lg text-red-300">حذف المشهد</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- مستكشف الأرشيف الحقيقي -->
+        <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl">
+            <h2 class="text-sm font-black text-white mb-2">استبدال سريع من الأرشيف الحقيقي (للمشهد النشط)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-2 mb-3">
+                <input id="archiveSearchInput" type="text" value="oil refinery petroleum" placeholder="ابحث بالإنجليزية..." class="md:col-span-6 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white">
+                <select id="archiveSourceSelect" class="md:col-span-2 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-200">
+                    <option value="wikimedia">Wikimedia (بدون مفتاح)</option>
+                    <option value="pixabay">Pixabay HD (مفتاح مجاني)</option>
+                    <option value="pexels">Pexels HD (مفتاح مجاني)</option>
+                </select>
+                <select id="archiveTypeSelect" class="md:col-span-2 bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-200">
+                    <option value="image">صور حقيقية</option>
+                    <option value="video">فيديو (Pixabay/Pexels)</option>
+                </select>
+                <button onclick="searchArchiveDirect()" class="md:col-span-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black rounded-xl py-2 text-xs">بحث وتعيين</button>
+            </div>
+            <div id="archiveResultsGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5"></div>
+        </section>
+    </main>
+
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-24 opacity-0 bg-slate-900/95 border border-amber-500/40 text-amber-300 text-xs font-bold px-4 py-2.5 rounded-xl shadow-2xl transition-all duration-300 z-50 pointer-events-none"></div>
+
+    <script>
+        const canvas = document.getElementById('cinemaCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const DEFAULT_PROJECT = {
+            id: 'petroleum_mobile_vox',
+            title: 'الذهب الأسود: كيف رسم البترول خريطة العالم الحديث؟',
+            channelStyle: 'vox',
+            aspectRatio: '16:9',
+            scenes: [
+                {
+                    sceneTitle: 'الهوك: السائل الذي حرك التاريخ',
+                    narration: 'قبل مئة وخمسين عاماً فقط، كان السائل الأسود يُعد مصدر إزعاج للمزارعين، قبل أن يتحول إلى شريان الطاقة الأهم في العالم.',
+                    visualType: 'vox_highlight',
+                    duration: 6,
+                    mediaUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Drake_Oil_Well.jpg/1024px-Drake_Oil_Well.jpg',
+                    mediaType: 'image',
+                    voxData: { highlightText: 'بنسلفانيا 1859: أول بئر نفط تجاري يغيّر التاريخ', sourceLabel: 'Wikimedia Commons', yearTag: '1859' }
+                },
+                {
+                    sceneTitle: 'خريطة الشرايين البحرية',
+                    narration: 'مع اكتشاف الاحتياطيات الكبرى في الشرق الأوسط، أصبحت الممرات البحرية أهم نقاط الثقل الجيوسياسي في العالم.',
+                    visualType: 'vox_map',
+                    duration: 6,
+                    mediaUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Anna_Chemical_Oil_tanker_-_IMO_7384986_on_De%C3%BBle_%282%29.jpg/1024px-Anna_Chemical_Oil_tanker_-_IMO_7384986_on_De%C3%BBle_%282%29.jpg',
+                    mediaType: 'image',
+                    voxData: { fromLabel: 'مضيق هرمز', toLabel: 'أوروبا وآسيا', statBadge: '~20% من نفط العالم يومياً', routePoints: [[0.64, 0.58], [0.46, 0.48], [0.28, 0.32]] }
+                },
+                {
+                    sceneTitle: 'قفزة الاستهلاك بالأرقام',
+                    narration: 'رغم كل الأزمات، ارتفع استهلاك العالم للنفط من عشرين مليون برميل إلى قرابة مئة مليون برميل كل يوم.',
+                    visualType: 'vox_chart',
+                    duration: 6,
+                    mediaUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/00_3783_Oil_and_gas_platform_in_Norway.jpg/1024px-00_3783_Oil_and_gas_platform_in_Norway.jpg',
+                    mediaType: 'image',
+                    voxData: { chartTitle: 'الاستهلاك العالمي (مليون برميل/يوم)', bars: [{ label: '1960', value: 21 }, { label: '1973', value: 56 }, { label: '1995', value: 70 }, { label: 'اليوم', value: 102 }] }
+                },
+                {
+                    sceneTitle: 'الخط الزمني للتحول القادم',
+                    narration: 'اليوم يقف العالم بين مصافٍ عملاقة لا تزال تدير الاقتصاد، وبين سباق محموم نحو طاقة المستقبل.',
+                    visualType: 'vox_timeline',
+                    duration: 6,
+                    mediaUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Blue_hour_fog_over_Preemraff_oil_refinery_by_Brofjorden.jpg/1024px-Blue_hour_fog_over_Preemraff_oil_refinery_by_Brofjorden.jpg',
+                    mediaType: 'image',
+                    voxData: { events: [{ year: '1859', label: 'أول بئر' }, { year: '1938', label: 'الخليج' }, { year: '1973', label: 'الأزمة' }, { year: '2026', label: 'التحول' }] }
+                }
+            ]
+        };
+
+        const DEFAULT_SLOTS = [
+            { id: 'm_gem', providerHint: 'gemini', placeholder: 'Google Gemini Free Key (AIza...)', key: '', status: null },
+            { id: 'm_groq', providerHint: 'groq', placeholder: 'Groq Free Key (gsk_...)', key: '', status: null },
+            { id: 'm_pix', providerHint: 'pixabay', placeholder: 'Pixabay Free Key (صور وفيديو)', key: '', status: null },
+            { id: 'm_or', providerHint: 'openrouter', placeholder: 'OpenRouter Free Key (sk-or-...)', key: '', status: null },
+            { id: 'm_oai', providerHint: 'openai', placeholder: 'OpenAI Key (sk-...)', key: '', status: null },
+            { id: 'm_pxl', providerHint: 'pexels', placeholder: 'Pexels / Claude / ElevenLabs (تلقائي)', key: '', status: null }
+        ];
+
+        const BADGES = {
+            gemini: { name: 'Gemini', color: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
+            groq: { name: 'Groq', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
+            pixabay: { name: 'Pixabay', color: 'bg-lime-500/20 text-lime-300 border-lime-500/40' },
+            openrouter: { name: 'OpenRouter', color: 'bg-pink-500/20 text-pink-300 border-pink-500/40' },
+            openai: { name: 'OpenAI', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
+            anthropic: { name: 'Claude', color: 'bg-orange-500/20 text-orange-300 border-orange-500/40' },
+            xai: { name: 'xAI Grok', color: 'bg-slate-600/30 text-slate-200 border-slate-500/40' },
+            elevenlabs: { name: 'ElevenLabs', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' },
+            pexels: { name: 'Pexels', color: 'bg-teal-500/20 text-teal-300 border-teal-500/40' },
+            unknown: { name: 'تلقائي', color: 'bg-slate-800 text-slate-400 border-slate-700' }
+        };
+
+        let agentSlots = JSON.parse(JSON.stringify(DEFAULT_SLOTS));
+        let currentProject = JSON.parse(JSON.stringify(DEFAULT_PROJECT));
+        let currentSceneIdx = 0;
+        let isPlaying = false, isMuted = false, musicEnabled = true, showCaptions = true, isRecording = false;
+        let sceneStartTime = 0, animationFrameId = null, toastTimer = null;
+        let audioCtx = null, masterGain = null, musicGain = null, mediaStreamDest = null;
+        let masterAudioBuffer = null, currentVoiceSource = null, ambientNodes = null;
+        let mediaRecorder = null, recordedChunks = [];
+
+        const imageCache = new Map();
+        const videoCache = new Map();
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            if (!t) return;
+            t.textContent = msg;
+            t.classList.remove('translate-y-24', 'opacity-0');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.add('translate-y-24', 'opacity-0'), 3200);
+        }
+
+        function toggleApiDrawer() { document.getElementById('apiDrawer').classList.toggle('hidden'); }
+
+        function detectProviderLocally(rawKey, hint = '') {
+            const k = (rawKey || '').trim();
+            if (!k) return hint || 'unknown';
+            if (k.startsWith('AIza')) return 'gemini';
+            if (k.startsWith('gsk_')) return 'groq';
+            if (k.startsWith('sk-or-')) return 'openrouter';
+            if (k.startsWith('sk-ant-')) return 'anthropic';
+            if (k.startsWith('xai-')) return 'xai';
+            if (/^\d{5,12}-[a-f0-9]{20,}$/i.test(k)) return 'pixabay';
+            if (k.startsWith('sk-proj-') || k.startsWith('sk-')) return hint === 'elevenlabs' ? 'elevenlabs' : 'openai';
+            return hint || 'unknown';
+        }
+
+        function loadKeys() {
+            try {
+                const raw = localStorage.getItem('ez_mobile_keys');
+                if (raw) {
+                    const arr = JSON.parse(raw);
+                    if (Array.isArray(arr) && arr.length) agentSlots = arr;
+                }
+            } catch {}
+            renderAgentSlots();
+        }
+        function saveKeys() { try { localStorage.setItem('ez_mobile_keys', JSON.stringify(agentSlots)); } catch {} }
+
+        function addAgentKeySlot() {
+            agentSlots.push({ id: `m_${Date.now()}`, providerHint: 'unknown', placeholder: 'الصق أي مفتاح API...', key: '', status: null });
+            saveKeys(); renderAgentSlots();
+            const inp = document.querySelector('#agentKeysGrid div:last-child input');
+            if (inp) inp.focus();
+            showToast('تمت إضافة خانة مفتاح جديدة');
+        }
+
+        function onAgentKeyInput(idx, val) {
+            agentSlots[idx].key = val.trim();
+            agentSlots[idx].detectedProvider = detectProviderLocally(val, agentSlots[idx].providerHint);
+            agentSlots[idx].status = null;
+            saveKeys();
+            const badge = document.getElementById(`mbadge-${idx}`);
+            if (badge) {
+                const p = agentSlots[idx].key ? agentSlots[idx].detectedProvider : agentSlots[idx].providerHint;
+                const info = BADGES[p] || BADGES.unknown;
+                badge.className = `text-[10px] px-2 py-0.5 rounded border font-bold shrink-0 ${info.color}`;
+                badge.textContent = info.name;
+            }
+            updateAgentsBadge();
+        }
+
+        function renderAgentSlots() {
+            const grid = document.getElementById('agentKeysGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            agentSlots.forEach((slot, idx) => {
+                const p = slot.key ? (slot.detectedProvider || detectProviderLocally(slot.key, slot.providerHint)) : slot.providerHint;
+                const info = BADGES[p] || BADGES.unknown;
+                const st = slot.status?.valid === true ? '<span class="text-[10px] text-emerald-400 font-bold">✓</span>'
+                    : (slot.status?.valid === false && slot.key ? '<span class="text-[10px] text-red-400">✕</span>' : '');
+                const div = document.createElement('div');
+                div.className = 'bg-slate-950 border border-slate-800 rounded-xl p-2 flex items-center gap-2';
+                div.innerHTML = `
+                    <span id="mbadge-${idx}" class="text-[10px] px-2 py-0.5 rounded border font-bold shrink-0 ${info.color}">${info.name}</span>
+                    <input type="password" dir="ltr" value="${(slot.key || '').replace(/"/g, '&quot;')}" placeholder="${slot.placeholder}" oninput="onAgentKeyInput(${idx}, this.value)" class="flex-1 min-w-0 bg-transparent text-xs font-mono text-white placeholder-slate-500 focus:outline-none">
+                    ${st}
+                `;
+                grid.appendChild(div);
+            });
+            updateAgentsBadge();
+        }
+
+        function updateAgentsBadge() {
+            const filled = agentSlots.filter(s => s.key);
+            const ok = filled.filter(s => s.status?.valid).length;
+            const el = document.getElementById('activeAgentsCount');
+            if (el) el.textContent = ok > 0 ? `${ok} متصل` : `${filled.length} مفتاح`;
+        }
+
+        async function detectAndVerifyAllKeys() {
+            const btn = document.getElementById('verifyKeysBtn');
+            const filled = agentSlots.filter(s => s.key);
+            if (!filled.length) return showToast('أدخل مفتاحاً واحداً على الأقل');
+            btn.disabled = true; btn.textContent = 'جاري الفحص...';
+            for (const slot of filled) {
+                const p = detectProviderLocally(slot.key, slot.providerHint);
+                slot.detectedProvider = p;
+                try {
+                    let ok = false;
+                    if (p === 'gemini') ok = (await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(slot.key)}`)).ok;
+                    else if (p === 'groq') ok = (await fetch('https://api.groq.com/openai/v1/models', { headers: { Authorization: `Bearer ${slot.key}` } })).ok;
+                    else if (p === 'openrouter') ok = (await fetch('https://openrouter.ai/api/v1/auth/key', { headers: { Authorization: `Bearer ${slot.key}` } })).ok;
+                    else if (p === 'openai') ok = (await fetch('https://api.openai.com/v1/models', { headers: { Authorization: `Bearer ${slot.key}` } })).ok;
+                    else if (p === 'pixabay') ok = (await fetch(`https://pixabay.com/api/?key=${encodeURIComponent(slot.key)}&q=oil&per_page=3`)).ok;
+                    else if (p === 'pexels') ok = (await fetch('https://api.pexels.com/v1/search?query=oil&per_page=1', { headers: { Authorization: slot.key } })).ok;
+                    else if (p === 'anthropic') ok = (await fetch('https://api.anthropic.com/v1/models', { headers: { 'x-api-key': slot.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' } })).ok;
+                    else if (p === 'elevenlabs') ok = (await fetch('https://api.elevenlabs.io/v1/user', { headers: { 'xi-api-key': slot.key } })).ok;
+                    slot.status = { valid: ok };
+                } catch { slot.status = { valid: false }; }
+            }
+            saveKeys(); renderAgentSlots();
+            btn.disabled = false; btn.textContent = 'فحص وتعرّف تلقائي + حفظ';
+            showToast(`تم الفحص: ${filled.filter(s => s.status?.valid).length} وكيل جاهز`);
+        }
+
+        function getKeyByProvider(prov) {
+            const s = agentSlots.find(x => x.key && (x.detectedProvider || detectProviderLocally(x.key, x.providerHint)) === prov);
+            return s ? s.key.trim() : '';
+        }
+
+        function getAvailableTextProviders() {
+            const order = ['gemini', 'groq', 'openrouter', 'openai', 'anthropic', 'xai'];
+            const list = [];
+            for (const p of order) {
+                const k = getKeyByProvider(p);
+                if (k) list.push({ provider: p, key: k });
+            }
+            return list;
+        }
+
+        // ---------- محرك تحليل وإصلاح JSON تلقائياً ----------
+        function robustParseJson(rawText) {
+            if (!rawText || typeof rawText !== 'string') throw new Error('استجابة فارغة من الوكيل');
+            let cleaned = rawText.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+            try { return JSON.parse(cleaned); } catch {}
+
+            const firstBrace = cleaned.indexOf('{');
+            if (firstBrace === -1) throw new Error('لم يُرجع الوكيل صيغة JSON');
+            cleaned = cleaned.slice(firstBrace);
+
+            // محاولة موازنة الأقواس أو إصلاح JSON المبتور
+            let depth = 0, inStr = false, esc = false, endIdx = -1;
+            const stack = [];
+            for (let i = 0; i < cleaned.length; i++) {
+                const c = cleaned[i];
+                if (esc) { esc = false; continue; }
+                if (c === '\\' && inStr) { esc = true; continue; }
+                if (c === '"') { inStr = !inStr; continue; }
+                if (inStr) continue;
+                if (c === '{' || c === '[') { stack.push(c); depth++; }
+                else if (c === '}' || c === ']') {
+                    stack.pop(); depth--;
+                    if (depth === 0) { endIdx = i; break; }
+                }
+            }
+            if (endIdx > 0) {
+                return JSON.parse(cleaned.slice(0, endIdx + 1));
+            }
+            // إصلاح JSON مقطوع في النهاية تلقائياً
+            let repaired = cleaned.replace(/,\s*$/, '');
+            if (inStr) repaired += '"';
+            while (stack.length > 0) {
+                const open = stack.pop();
+                repaired += (open === '{' ? '}' : ']');
+            }
+            repaired = repaired.replace(/,\s*([}\]])/g, '$1');
+            return JSON.parse(repaired);
+        }
+
+        // ---------- استدعاء AI ذكي مع التبديل التلقائي بين الوكلاء ----------
+        async function callAiJsonWithAutoFallback(prompt, { useSearch = false, onStatus = null } = {}) {
+            const providers = getAvailableTextProviders();
+            if (!providers.length) throw new Error('أدخل مفتاح API نصي واحد على الأقل (Gemini أو Groq مجاناً)');
+
+            const errors = [];
+            for (const { provider, key } of providers) {
+                const models = provider === 'gemini' ? ['gemini-2.5-flash', 'gemini-2.5-flash-lite']
+                    : provider === 'groq' ? ['openai/gpt-oss-120b', 'qwen/qwen3-32b', 'llama-3.3-70b-versatile']
+                    : provider === 'openrouter' ? ['google/gemma-3-27b-it:free', 'meta-llama/llama-3.3-70b-instruct:free', 'qwen/qwen3-235b-a22b:free']
+                    : provider === 'openai' ? ['gpt-4o-mini', 'gpt-4o']
+                    : provider === 'anthropic' ? ['claude-sonnet-4-5', 'claude-haiku-4-5']
+                    : ['grok-3-mini'];
+
+                for (const model of models) {
+                    try {
+                        if (onStatus) onStatus(`الاتصال بالوكيل ${provider} (${model})...`);
+                        let text = '';
+                        if (provider === 'gemini') {
+                            const body = {
+                                contents: [{ parts: [{ text: prompt }] }],
+                                generationConfig: {
+                                    temperature: 0.7,
+                                    maxOutputTokens: 8192,
+                                    ...(useSearch ? {} : { responseMimeType: 'application/json' })
+                                }
+                            };
+                            if (useSearch) body.tools = [{ google_search: {} }];
+                            const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
+                                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+                            });
+                            const data = await r.json().catch(() => ({}));
+                            if (!r.ok) throw new Error(data?.error?.message || `HTTP ${r.status}`);
+                            text = (data?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
+                        } else if (provider === 'anthropic') {
+                            const r = await fetch('https://api.anthropic.com/v1/messages', {
+                                method: 'POST',
+                                headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true', 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ model, max_tokens: 6000, messages: [{ role: 'user', content: prompt }] })
+                            });
+                            const data = await r.json().catch(() => ({}));
+                            if (!r.ok) throw new Error(data?.error?.message || `HTTP ${r.status}`);
+                            text = data?.content?.[0]?.text || '';
+                        } else {
+                            const url = provider === 'groq' ? 'https://api.groq.com/openai/v1/chat/completions'
+                                : provider === 'openrouter' ? 'https://openrouter.ai/api/v1/chat/completions'
+                                : provider === 'xai' ? 'https://api.x.ai/v1/chat/completions'
+                                : 'https://api.openai.com/v1/chat/completions';
+                            const r = await fetch(url, {
+                                method: 'POST',
+                                headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    model,
+                                    messages: [{ role: 'user', content: prompt }],
+                                    max_tokens: 6500,
+                                    ...(provider === 'openai' || provider === 'groq' ? { response_format: { type: 'json_object' } } : {})
+                                })
+                            });
+                            const data = await r.json().catch(() => ({}));
+                            if (!r.ok) throw new Error(data?.error?.message || `HTTP ${r.status}`);
+                            text = data?.choices?.[0]?.message?.content || '';
+                        }
+                        const parsed = robustParseJson(text);
+                        return { parsed, provider, model };
+                    } catch (err) {
+                        errors.push(`${provider}/${model}: ${err.message}`);
+                    }
+                }
+            }
+            throw new Error(`تعذّر الإنتاج من جميع الوكلاء (${errors.slice(0, 2).join(' | ')})`);
+        }
+
+        // ---------- 1. باحث أفكار وعناوين يوتيوب (10 عناوين قوية) ----------
+        async function suggestYoutubeTitles() {
+            const idea = document.getElementById('topicInput').value.trim();
+            if (!idea) return showToast('اكتب فكرة الحلقة أولاً');
+            const btn = document.getElementById('titleResearchBtn');
+            const box = document.getElementById('titlesSuggestionsBox');
+            const grid = document.getElementById('titlesSuggestionsGrid');
+            btn.disabled = true; btn.textContent = 'جاري البحث...';
+            box.classList.remove('hidden');
+            grid.innerHTML = '<div class="col-span-full text-xs text-amber-300 py-2">جاري تحليل أنماط يوتيوب وبناء 10 عناوين عالية النقر (CTR)...</div>';
+
+            try {
+                // سحب لمحة حقيقية من ويكيبيديا العربية لدعم الدقة التاريخية والعلمية
+                let wikiContext = '';
+                try {
+                    const wRes = await fetch(`https://ar.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(idea)}&srlimit=4&format=json&origin=*`);
+                    const wData = await wRes.json();
+                    wikiContext = (wData?.query?.search || []).map(x => `${x.title}: ${x.snippet.replace(/<[^>]+>/g, '')}`).join(' | ');
+                } catch {}
+
+                const prompt = `أنت خبير استراتيجية قنوات وثائقية على يوتيوب (مثل Vox وJohnny Harris والدحيح وLEMMiNO).
+الفكرة الأساسية: "${idea}"
+سياق معرفي إضافي: "${wikiContext || 'عام'}"
+ابحث وحلل ما يجذب المشاهدين على يوتيوب في هذا الموضوع (أسئلة غامضة، حقائق صادمة، صراع خفي، تأثير اقتصادي أو جيوسياسي)، ثم اقترح 10 عناوين عربية قوية جداً ومختلفة الزوايا.
+أعد JSON فقط بهذه البنية:
+{"titles":[{"title":"العنوان الكامل الجذاب","angle":"الزاوية مثلاً: تحقيق / اقتصاد خفي / غموض","hook":"لماذا سينقر المشاهد عليه؟"}]}`;
+
+                const { parsed } = await callAiJsonWithAutoFallback(prompt, { useSearch: true });
+                const list = Array.isArray(parsed.titles) ? parsed.titles.slice(0, 10) : [];
+                if (!list.length) throw new Error('لم ترجع عناوين');
+
+                grid.innerHTML = '';
+                list.forEach((item, idx) => {
+                    const card = document.createElement('button');
+                    card.type = 'button';
+                    card.className = 'text-right bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-amber-500 rounded-xl p-2.5 transition-all';
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                            <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-bold">${item.angle || 'وثائقي'}</span>
+                            <span class="text-[10px] text-slate-500 font-mono">#${idx + 1}</span>
+                        </div>
+                        <div class="text-xs font-black text-white leading-snug mb-1">${item.title}</div>
+                        <div class="text-[10px] text-slate-400 truncate">${item.hook || ''}</div>
+                    `;
+                    card.onclick = () => {
+                        document.getElementById('topicInput').value = item.title;
+                        box.classList.add('hidden');
+                        showToast(`تم اختيار العنوان #${idx + 1}`);
+                    };
+                    grid.appendChild(card);
+                });
+            } catch (e) {
+                grid.innerHTML = `<div class="col-span-full text-xs text-red-400 py-2">خطأ: ${e.message}</div>`;
+            } finally {
+                btn.disabled = false; btn.textContent = '🔍 10 عناوين';
+            }
+        }
+
+        // ---------- 2. محرك الصوت + تحويل السكربت دفعة واحدة + المواءمة الموجية ----------
+        function ensureAudioGraph() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioCtx.createGain();
+                masterGain.gain.value = 0.95;
+                masterGain.connect(audioCtx.destination);
+                mediaStreamDest = audioCtx.createMediaStreamDestination();
+                masterGain.connect(mediaStreamDest);
+
+                musicGain = audioCtx.createGain();
+                musicGain.gain.value = 0.04;
+                musicGain.connect(masterGain);
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function startAmbientMusic() {
+            if (!musicEnabled) return;
+            ensureAudioGraph(); stopAmbientMusic();
+            const f = audioCtx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 340;
+            const o1 = audioCtx.createOscillator(); o1.type = 'triangle'; o1.frequency.value = 110;
+            const o2 = audioCtx.createOscillator(); o2.type = 'sine'; o2.frequency.value = 164.81;
+            o1.connect(f); o2.connect(f); f.connect(musicGain);
+            musicGain.gain.setTargetAtTime(masterAudioBuffer ? 0.032 : 0.06, audioCtx.currentTime, 0.3);
+            o1.start(); o2.start();
+            ambientNodes = { o1, o2 };
+        }
+
+        function stopAmbientMusic() {
+            if (!ambientNodes) return;
+            try { ambientNodes.o1.stop(); ambientNodes.o2.stop(); } catch {}
+            ambientNodes = null;
+        }
+
+        function playTransitionSfx() {
+            if (isMuted || !audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(90, now + 0.14);
+                g.gain.setValueAtTime(0.05, now);
+                g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                osc.connect(g); g.connect(masterGain);
+                osc.start(now); osc.stop(now + 0.16);
+            } catch {}
+        }
+
+        function pcmToWavBuffer(pcmBytes, sampleRate = 24000) {
+            const wav = new ArrayBuffer(44 + pcmBytes.length), vw = new DataView(wav);
+            const ws = (o, str) => { for (let i = 0; i < str.length; i++) vw.setUint8(o + i, str.charCodeAt(i)); };
+            ws(0, 'RIFF'); vw.setUint32(4, 36 + pcmBytes.length, true); ws(8, 'WAVE'); ws(12, 'fmt ');
+            vw.setUint32(16, 16, true); vw.setUint16(20, 1, true); vw.setUint16(22, 1, true); vw.setUint32(24, sampleRate, true);
+            vw.setUint32(28, sampleRate * 2, true); vw.setUint16(32, 2, true); vw.setUint16(34, 16, true);
+            ws(36, 'data'); vw.setUint32(40, pcmBytes.length, true);
+            new Uint8Array(wav, 44).set(pcmBytes);
+            return wav;
+        }
+
+        function concatAudioBuffers(buffers) {
+            if (!buffers.length) return null;
+            if (buffers.length === 1) return buffers[0];
+            const sr = buffers[0].sampleRate;
+            const totalLen = buffers.reduce((s, b) => s + b.length, 0);
+            const out = audioCtx.createBuffer(1, totalLen, sr);
+            const ch = out.getChannelData(0);
+            let offset = 0;
+            for (const b of buffers) {
+                ch.set(b.getChannelData(0), offset);
+                offset += b.length;
+            }
+            return out;
+        }
+
+        async function synthesizeSingleTtsChunk(chunkText) {
+            const gem = getKeyByProvider('gemini');
+            const oai = getKeyByProvider('openai');
+            const el = getKeyByProvider('elevenlabs');
+
+            if (gem) {
+                try {
+                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${encodeURIComponent(gem)}`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: `اقرأ النص الوثائقي التالي بنبرة احترافية متزنة وواضحة مع توقف قصير طبيعي بين كل فقرة:\n${chunkText}` }] }],
+                            generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Charon' } } } }
+                        })
+                    });
+                    const d = await r.json();
+                    const b64 = d?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                    if (b64) {
+                        const bin = atob(b64), pcm = new Uint8Array(bin.length);
+                        for (let i = 0; i < bin.length; i++) pcm[i] = bin.charCodeAt(i);
+                        return await audioCtx.decodeAudioData(pcmToWavBuffer(pcm, 24000));
+                    }
+                } catch {}
+            }
+
+            if (oai) {
+                try {
+                    const r = await fetch('https://api.openai.com/v1/audio/speech', {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${oai}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ model: 'tts-1-hd', voice: 'onyx', input: chunkText.slice(0, 4096) })
+                    });
+                    if (r.ok) return await audioCtx.decodeAudioData(await r.arrayBuffer());
+                } catch {}
+            }
+
+            if (el) {
+                try {
+                    const r = await fetch('https://api.elevenlabs.io/v1/text-to-speech/pNInz6obpgDQGcFmaJgB', {
+                        method: 'POST',
+                        headers: { 'xi-api-key': el, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: chunkText.slice(0, 4800), model_id: 'eleven_multilingual_v2' })
+                    });
+                    if (r.ok) return await audioCtx.decodeAudioData(await r.arrayBuffer());
+                } catch {}
+            }
+            return null;
+        }
+
+        async function synthesizeWholeScriptOneShot(scenes) {
+            ensureAudioGraph();
+            const texts = scenes.map(s => (s.narration || '').trim()).filter(Boolean);
+            const fullText = texts.join(' ... ');
+            if (!fullText) return null;
+
+            // دفعة واحدة دائماً إذا كان النص ضمن الحد الآمن، أو تقسيم لأقل عدد ممكن (2) للحلقات الطويلة جداً
+            if (fullText.length <= 3600) {
+                return await synthesizeSingleTtsChunk(fullText);
+            }
+            const mid = Math.ceil(texts.length / 2);
+            const b1 = await synthesizeSingleTtsChunk(texts.slice(0, mid).join(' ... '));
+            const b2 = await synthesizeSingleTtsChunk(texts.slice(mid).join(' ... '));
+            const valid = [b1, b2].filter(Boolean);
+            return valid.length ? concatAudioBuffers(valid) : null;
+        }
+
+        // مواءمة المشاهد مع الماستر الصوتي بدقة عبر التقاط فجوات الصمت بين الجمل
+        function alignScenesToMasterAudio(buffer, scenes) {
+            if (!buffer || !scenes.length) {
+                scenes.forEach(s => {
+                    const words = (s.narration || '').split(/\s+/).filter(Boolean).length;
+                    s.duration = Math.max(3.5, Math.min(12, Math.round((words / 2.2) * 10) / 10));
+                    delete s.audioStart; delete s.audioEnd;
+                });
+                return;
+            }
+            const totalDur = buffer.duration;
+            const sr = buffer.sampleRate;
+            const samples = buffer.getChannelData(0);
+            const charCounts = scenes.map(s => Math.max(10, (s.narration || '').trim().length));
+            const totalChars = charCounts.reduce((a, b) => a + b, 0);
+
+            const splitTimes = [0];
+            let accChars = 0;
+            for (let i = 0; i < scenes.length - 1; i++) {
+                accChars += charCounts[i];
+                const idealTime = (accChars / totalChars) * totalDur;
+                const prevSplit = splitTimes[i];
+                const searchStart = Math.max(prevSplit + 1.8, idealTime - 1.35);
+                const searchEnd = Math.min(totalDur - (scenes.length - 1 - i) * 1.8, idealTime + 1.35);
+
+                let bestTime = idealTime;
+                let lowestEnergy = Infinity;
+                const winSamples = Math.floor(sr * 0.06);
+                const step = Math.floor(sr * 0.03);
+                for (let t = searchStart; t <= searchEnd; t += 0.03) {
+                    const idx = Math.floor(t * sr);
+                    if (idx + winSamples >= samples.length) break;
+                    let sumSq = 0;
+                    for (let k = 0; k < winSamples; k += 4) sumSq += samples[idx + k] * samples[idx + k];
+                    const rms = sumSq / (winSamples / 4);
+                    // تفضيل الصمت القريب من النقطة المثالية
+                    const distPenalty = 1 + Math.abs(t - idealTime) * 0.25;
+                    const score = rms * distPenalty;
+                    if (score < lowestEnergy) { lowestEnergy = score; bestTime = t; }
+                    void step;
+                }
+                splitTimes.push(Math.max(prevSplit + 1.5, bestTime));
+            }
+            splitTimes.push(totalDur);
+
+            for (let i = 0; i < scenes.length; i++) {
+                scenes[i].audioStart = Math.round(splitTimes[i] * 100) / 100;
+                scenes[i].audioEnd = Math.round(splitTimes[i + 1] * 100) / 100;
+                scenes[i].duration = Math.max(2, Math.round((scenes[i].audioEnd - scenes[i].audioStart) * 100) / 100);
+            }
+        }
+
+        async function generateSingleMasterVoice() {
+            if (!currentProject.scenes.length) return;
+            showToast('جاري تحويل كامل السكربت لصوت دفعة واحدة...');
+            const buf = await synthesizeWholeScriptOneShot(currentProject.scenes);
+            if (!buf) return showToast('أضف مفتاح Gemini أو OpenAI أو ElevenLabs لتوليد الصوت');
+            masterAudioBuffer = buf;
+            alignScenesToMasterAudio(masterAudioBuffer, currentProject.scenes);
+            renderScenesList();
+            showToast(`تم توليد الصوت (${Math.round(buf.duration)}ث) ومزامنة المشاهد تلقائياً`);
+        }
+
+        // ---------- 3. جلب الوسائط الحقيقية ومنع التكرار ----------
+        async function fetchMediaCandidates(query, preferVideo = false) {
+            const pix = getKeyByProvider('pixabay');
+            const pxl = getKeyByProvider('pexels');
+            const results = [];
+
+            if (pix) {
+                try {
+                    if (preferVideo) {
+                        const d = await (await fetch(`https://pixabay.com/api/videos/?key=${encodeURIComponent(pix)}&q=${encodeURIComponent(query)}&per_page=8`)).json();
+                        (d.hits || []).forEach(v => {
+                            const url = v.videos?.medium?.url || v.videos?.small?.url;
+                            if (url) results.push({ url, type: 'video', source: 'Pixabay Video' });
+                        });
+                    }
+                    const d2 = await (await fetch(`https://pixabay.com/api/?key=${encodeURIComponent(pix)}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=8`)).json();
+                    (d2.hits || []).forEach(p => {
+                        const url = p.largeImageURL || p.webformatURL;
+                        if (url) results.push({ url, type: 'image', source: 'Pixabay Photo' });
+                    });
+                } catch {}
+            }
+
+            if (pxl && results.length < 4) {
+                try {
+                    if (preferVideo) {
+                        const d = await (await fetch(`https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=5`, { headers: { Authorization: pxl } })).json();
+                        (d.videos || []).forEach(v => {
+                            const url = v.video_files?.[0]?.link;
+                            if (url) results.push({ url, type: 'video', source: 'Pexels Video' });
+                        });
+                    }
+                    const d2 = await (await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=6`, { headers: { Authorization: pxl } })).json();
+                    (d2.photos || []).forEach(p => {
+                        const url = p.src?.large || p.src?.medium;
+                        if (url) results.push({ url, type: 'image', source: 'Pexels Photo' });
+                    });
+                } catch {}
+            }
+
+            // ويكيميديا كومنز دائماً متاح مجاناً بدون مفتاح
+            try {
+                const ep = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query + ' filetype:bitmap')}&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url&iiurlwidth=1024&format=json&origin=*`;
+                const d = await (await fetch(ep)).json();
+                Object.values(d?.query?.pages || {}).forEach(p => {
+                    const url = p.imageinfo?.[0]?.thumburl || p.imageinfo?.[0]?.url;
+                    if (url && !/\.svg$/i.test(url)) results.push({ url, type: 'image', source: 'Wikimedia' });
+                });
+            } catch {}
+
+            return results;
+        }
+
+        function preloadAndCheckMedia(url, type) {
+            return new Promise((resolve) => {
+                if (!url) return resolve(false);
+                if (type === 'video') {
+                    const v = getOrLoadVideo(url);
+                    const done = (ok) => resolve(ok);
+                    if (v.readyState >= 2) return done(true);
+                    v.onloadeddata = () => done(true);
+                    v.onerror = () => done(false);
+                    setTimeout(() => done(v.readyState >= 1), 4000);
+                } else {
+                    const img = getOrLoadImage(url);
+                    if (img.complete && img.naturalWidth > 0) return resolve(true);
+                    img.onload = () => { if (!isPlaying) renderSceneFrame(currentSceneIdx, 0.35); resolve(img.naturalWidth > 0); };
+                    img.onerror = () => resolve(false);
+                    setTimeout(() => resolve(Boolean(img.complete && img.naturalWidth > 0)), 4500);
+                }
+            });
+        }
+
+        // ---------- 4. المدقق البصري التلقائي (منع التكرار وتصحيح الأخطاء) ----------
+        async function auditAndRepairProject(project, onStatus = null) {
+            const report = { deduped: 0, repairedAssets: 0, variedTemplates: 0, fixedVox: 0 };
+            const usedUrls = new Set();
+            const allowedTemplates = ['vox_highlight', 'vox_map', 'vox_chart', 'vox_split', 'vox_timeline', 'cinematic', 'video_clip'];
+            const backupPool = DEFAULT_PROJECT.scenes.map(s => s.mediaUrl);
+
+            for (let i = 0; i < project.scenes.length; i++) {
+                const sc = project.scenes[i];
+                if (onStatus) onStatus(`التدقيق البصري الذكي للمشهد ${i + 1} من ${project.scenes.length}...`);
+
+                // 1) فحص صحة القالب ومنع تكرار نفس القالب متتالياً
+                if (!allowedTemplates.includes(sc.visualType)) sc.visualType = 'vox_highlight';
+                if (i > 0 && sc.visualType === project.scenes[i - 1].visualType) {
+                    const alts = ['vox_highlight', 'vox_split', 'cinematic', 'vox_timeline', 'vox_chart'];
+                    sc.visualType = alts.find(a => a !== project.scenes[i - 1].visualType) || 'cinematic';
+                    report.variedTemplates++;
+                }
+
+                // 2) فحص صحة بيانات الجرافيك لكل قالب
+                if (!sc.voxData) sc.voxData = {};
+                if (sc.visualType === 'vox_highlight' && !sc.voxData.highlightText) {
+                    sc.voxData.highlightText = sc.sceneTitle || (sc.narration || '').split(' ').slice(0, 7).join(' ');
+                    report.fixedVox++;
+                }
+                if (sc.visualType === 'vox_chart' && (!Array.isArray(sc.voxData.bars) || sc.voxData.bars.length < 2)) {
+                    sc.visualType = 'vox_highlight';
+                    sc.voxData.highlightText = sc.sceneTitle;
+                    report.fixedVox++;
+                }
+                if (sc.visualType === 'vox_timeline' && (!Array.isArray(sc.voxData.events) || sc.voxData.events.length < 2)) {
+                    sc.visualType = 'cinematic';
+                    report.fixedVox++;
+                }
+                if (sc.visualType === 'vox_map' && (!sc.voxData.fromLabel || !sc.voxData.toLabel)) {
+                    sc.voxData.fromLabel = sc.voxData.fromLabel || 'نقطة الانطلاق';
+                    sc.voxData.toLabel = sc.voxData.toLabel || 'التأثير العالمي';
+                    sc.voxData.routePoints = sc.voxData.routePoints || [[0.65, 0.58], [0.48, 0.45], [0.28, 0.34]];
+                    report.fixedVox++;
+                }
+                if (sc.visualType === 'vox_split' && (!sc.voxData.leftLabel || !sc.voxData.rightLabel)) {
+                    sc.voxData.leftLabel = sc.voxData.leftLabel || 'الواقع السابق';
+                    sc.voxData.rightLabel = sc.voxData.rightLabel || 'التحول الجديد';
+                    report.fixedVox++;
+                }
+
+                // 3) فحص تكرار الصورة/الفيديو أو تعطل الرابط
+                let needsReplacement = !sc.mediaUrl || usedUrls.has(sc.mediaUrl);
+                if (sc.mediaUrl && usedUrls.has(sc.mediaUrl)) report.deduped++;
+
+                if (!needsReplacement) {
+                    const ok = await preloadAndCheckMedia(sc.mediaUrl, sc.mediaType || 'image');
+                    if (!ok) { needsReplacement = true; report.repairedAssets++; }
+                }
+
+                if (needsReplacement) {
+                    const qList = [sc.archiveQuery, sc.fallbackQuery, project.title, 'world history architecture', 'earth technology'].filter(Boolean);
+                    let picked = null;
+                    for (const q of qList) {
+                        const cands = await fetchMediaCandidates(q, sc.visualType === 'video_clip');
+                        for (const c of cands) {
+                            if (!usedUrls.has(c.url)) {
+                                const ok = await preloadAndCheckMedia(c.url, c.type);
+                                if (ok) { picked = c; break; }
+                            }
+                        }
+                        if (picked) break;
+                    }
+                    if (picked) {
+                        sc.mediaUrl = picked.url;
+                        sc.mediaType = picked.type;
+                        if (picked.type === 'video' && sc.visualType !== 'video_clip') sc.visualType = 'video_clip';
+                    } else {
+                        const fallbackUrl = backupPool.find(u => !usedUrls.has(u)) || backupPool[i % backupPool.length];
+                        sc.mediaUrl = fallbackUrl;
+                        sc.mediaType = 'image';
+                    }
+                }
+                if (sc.mediaUrl) usedUrls.add(sc.mediaUrl);
+            }
+            return report;
+        }
+
+        async function runManualAudit() {
+            const banner = document.getElementById('directorAuditBanner');
+            document.getElementById('pipelineStatus').classList.remove('hidden');
+            const rep = await auditAndRepairProject(currentProject, (m) => {
+                document.getElementById('statusText').textContent = m;
+            });
+            renderScenesList();
+            renderSceneFrame(currentSceneIdx, 0.35);
+            banner.classList.remove('hidden');
+            banner.innerHTML = `🛡 <strong>تقرير المدقق البصري:</strong> منع تكرار (${rep.deduped}) · إصلاح وسائط (${rep.repairedAssets}) · تنويع قوالب (${rep.variedTemplates}) · تصحيح بيانات (${rep.fixedVox})`;
+            showToast('اكتمل التدقيق البصري');
+        }
+
+        // ---------- 5. الإنتاج الذاتي المتكامل بضغطة زر ----------
+        async function startAutonomousProduction() {
+            const topic = document.getElementById('topicInput').value.trim();
+            if (!topic) return showToast('أدخل موضوع الحلقة أولاً');
+            const style = document.getElementById('channelStyleSelect').value;
+            const mins = parseInt(document.getElementById('durationSelect').value, 10) || 3;
+            const sceneCount = mins === 1 ? 6 : mins === 3 ? 10 : 14;
+
+            const btn = document.getElementById('aiProduceBtn');
+            btn.disabled = true;
+            document.getElementById('pipelineStatus').classList.remove('hidden');
+            const banner = document.getElementById('directorAuditBanner');
+            banner.classList.add('hidden');
+            const setP = (p, m) => {
+                document.getElementById('productionProgressBar').style.width = `${p}%`;
+                document.getElementById('progressPercent').textContent = `${p}%`;
+                document.getElementById('statusText').textContent = m;
+            };
+
+            try {
+                setP(15, '1/4 المخرج يكتب السكربت ويوزع القوالب البصرية...');
+                const scriptPrompt = `أنت مخرج أفلام وثائقية محترف بأسلوب (${style}) لقناة يوتيوب كبرى.
+الموضوع: "${topic}"
+المدة المستهدفة: ${mins} دقيقة مقسمة إلى ${sceneCount} مشاهد متسلسلة ومترابطة.
+القواعد الصارمة:
+1. اكتب تعليقاً صوتياً عربياً سلساً ومشوقاً (تجنب التشكيل الثقيل والرموز الغريبة، ولتكن كل جملة واضحة وموزونة).
+2. نوّع القوالب البصرية بين المشاهد ولا تكرر نفس القالب في مشهدين متتاليين:
+   - "vox_highlight" (أرفق highlightText و yearTag)
+   - "vox_map" (أرفق fromLabel و toLabel و statBadge و routePoints مصفوفة 3 نقاط [x,y] بين 0.2 و 0.8)
+   - "vox_chart" (أرفق chartTitle و bars مصفوفة 3-4 عناصر {label, value})
+   - "vox_split" (أرفق leftLabel و rightLabel و vsText)
+   - "vox_timeline" (أرفق events مصفوفة 3-4 أحداث {year, label})
+   - "cinematic" أو "video_clip"
+3. أعطِ كل مشهد كلمتين إنجليزيتين دقيقتين للبحث البصري archiveQuery وبديلاً مختلفاً تماماً fallbackQuery لضمان عدم تكرار أي صورة أو فيديو بين المشاهد.
+
+أعد JSON فقط بدون أي نص خارجي:
+{"title":"...","scenes":[{"sceneTitle":"...","narration":"...","visualType":"vox_highlight|vox_map|vox_chart|vox_split|vox_timeline|cinematic|video_clip","archiveQuery":"English keywords","fallbackQuery":"Alternative English keywords","voxData":{"highlightText":"...","yearTag":"..."}}]}`;
+
+                const { parsed, provider } = await callAiJsonWithAutoFallback(scriptPrompt, {
+                    onStatus: (msg) => setP(20, msg)
+                });
+                const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : [];
+                if (!scenes.length) throw new Error('لم يولد السكربت أي مشاهد');
+
+                // 2/4: توليد الصوت دفعة واحدة + المواءمة التلقائية على الجمل
+                setP(42, '2/4 تحويل كامل السكربت لتعليق صوتي دفعة واحدة...');
+                masterAudioBuffer = await synthesizeWholeScriptOneShot(scenes);
+                alignScenesToMasterAudio(masterAudioBuffer, scenes);
+
+                // 3/4: البحث عن وسائط حقيقية متفردة لكل مشهد
+                setP(65, '3/4 سحب صور ومقاطع فيديو حقيقية متطابقة مع كل جملة...');
+                const usedUrls = new Set();
+                for (let i = 0; i < scenes.length; i++) {
+                    setP(65 + Math.round((i / scenes.length) * 20), `جلب اللقطة البصرية للمشهد ${i + 1} من ${scenes.length}...`);
+                    const sc = scenes[i];
+                    const cands = await fetchMediaCandidates(sc.archiveQuery || topic, sc.visualType === 'video_clip');
+                    const unique = cands.find(c => !usedUrls.has(c.url));
+                    if (unique) {
+                        sc.mediaUrl = unique.url;
+                        sc.mediaType = unique.type;
+                        usedUrls.add(unique.url);
+                    }
+                }
+
+                // 4/4: المدقق البصري التلقائي
+                const newProject = {
+                    id: `dir_${Date.now()}`,
+                    title: parsed.title || topic,
+                    channelStyle: style,
+                    aspectRatio: document.getElementById('aspectRatioSelect').value,
+                    scenes
+                };
+                setP(88, '4/4 المدقق البصري يفحص التكرار والأخطاء والتزامن...');
+                const rep = await auditAndRepairProject(newProject, (m) => setP(92, m));
+
+                currentProject = newProject;
+                currentSceneIdx = 0;
+                document.getElementById('movieTitleDisplay').textContent = currentProject.title;
+                renderScenesList();
+                saveProjectLocal();
+                setP(100, `اكتمل الإخراج بنجاح عبر (${provider})!`);
+
+                banner.classList.remove('hidden');
+                const voiceNote = masterAudioBuffer
+                    ? `🎙️ صوت موحّد عالي الجودة (${Math.round(masterAudioBuffer.duration)} ثانية) متزامن موجياً`
+                    : '🔇 بدون مفتاح TTS (تم ضبط المدد تلقائياً — أضف Gemini/OpenAI للتعليق الصوتي)';
+                banner.innerHTML = `✅ <strong>تقرير المخرج والمدقق البصري:</strong> ${scenes.length} مشاهد · ${voiceNote} · منع تكرار (${rep.deduped}) · إصلاح روابط (${rep.repairedAssets}) · تنويع قوالب (${rep.variedTemplates})`;
+
+                startPlayback();
+            } catch (e) {
+                setP(0, `خطأ: ${e.message}`);
+                showToast('تعذر إكمال الإنتاج: ' + e.message);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // ---------- محرك الرسم السينمائي (7 قوالب + شريط التقدم + الكاريوكي) ----------
+        function getOrLoadImage(url) {
+            if (!url) return null;
+            if (imageCache.has(url)) return imageCache.get(url);
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => { if (!isPlaying) renderSceneFrame(currentSceneIdx, 0.35); };
+            img.src = url;
+            imageCache.set(url, img);
+            return img;
+        }
+
+        function getOrLoadVideo(url) {
+            if (!url) return null;
+            if (videoCache.has(url)) return videoCache.get(url);
+            const v = document.createElement('video');
+            v.crossOrigin = 'anonymous'; v.muted = true; v.loop = true; v.playsInline = true; v.src = url; v.load();
+            videoCache.set(url, v);
+            return v;
+        }
+
+        function drawCover(el, x, y, w, h, scale = 1, panX = 0, panY = 0) {
+            const nw = el.videoWidth || el.naturalWidth, nh = el.videoHeight || el.naturalHeight;
+            if (!nw || !nh) return;
+            const s = Math.max(w / nw, h / nh) * scale;
+            const dw = nw * s, dh = nh * s;
+            ctx.drawImage(el, x + (w - dw) / 2 + panX, y + (h - dh) / 2 + panY, dw, dh);
+        }
+
+        function drawBadge(text, x, y, bg = '#fbbf24', fg = '#090d16') {
+            if (!text) return;
+            ctx.save();
+            const fs = Math.max(14, Math.round(canvas.width * 0.015));
+            ctx.font = `800 ${fs}px Cairo, sans-serif`;
+            const tw = ctx.measureText(text).width;
+            ctx.fillStyle = bg; ctx.beginPath(); ctx.roundRect(x, y, tw + 28, fs + 14, 8); ctx.fill();
+            ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(text, x + (tw + 28) / 2, y + (fs + 14) / 2 + 1);
+            ctx.restore();
+        }
+
+        function renderSceneFrame(idx, progress) {
+            const scene = currentProject?.scenes?.[idx];
+            if (!scene) return;
+            const W = canvas.width, H = canvas.height, vType = scene.visualType || 'cinematic', vox = scene.voxData || {};
+            const img = scene.mediaType === 'video' ? null : getOrLoadImage(scene.mediaUrl);
+            const vid = scene.mediaType === 'video' ? getOrLoadVideo(scene.mediaUrl) : null;
+
+            ctx.fillStyle = '#070b14'; ctx.fillRect(0, 0, W, H);
+            const scale = 1 + progress * 0.08;
+
+            if (vType === 'vox_highlight') {
+                ctx.fillStyle = '#f3ede0'; ctx.fillRect(0, 0, W, H);
+                const cw = W * 0.72, ch = H * 0.56, cx = (W - cw) / 2, cy = H * 0.1;
+                ctx.fillStyle = '#fff'; ctx.fillRect(cx - 8, cy - 8, cw + 16, ch + 16);
+                ctx.save(); ctx.beginPath(); ctx.rect(cx, cy, cw, ch); ctx.clip();
+                if (img?.complete && img.naturalWidth) drawCover(img, cx, cy, cw, ch, scale, 0, 0);
+                ctx.restore();
+                const hl = vox.highlightText || scene.sceneTitle, fs = Math.max(18, Math.round(W * 0.022));
+                ctx.font = `900 ${fs}px Cairo, sans-serif`;
+                const hw = Math.min(W * 0.84, ctx.measureText(hl).width + 32), hx = (W - hw) / 2, hy = cy + ch + H * 0.035, hh = fs + 18;
+                const sw = Math.min(1, progress * 2.2);
+                ctx.fillStyle = '#fde047'; ctx.fillRect(hx + hw * (1 - sw), hy, hw * sw, hh);
+                ctx.fillStyle = '#111827'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(hl, W / 2, hy + hh / 2 + 1);
+                if (vox.yearTag) drawBadge(vox.yearTag, cx + 12, cy + 12, '#facc15', '#090d16');
+            } else if (vType === 'vox_map') {
+                ctx.fillStyle = '#0b1322'; ctx.fillRect(0, 0, W, H);
+                if (img?.complete && img.naturalWidth) { ctx.save(); ctx.globalAlpha = 0.25; drawCover(img, 0, 0, W, H, scale); ctx.restore(); }
+                const pts = vox.routePoints || [[0.64, 0.58], [0.46, 0.48], [0.28, 0.32]];
+                const p0 = { x: pts[0][0] * W, y: pts[0][1] * H }, p1 = { x: pts[1][0] * W, y: pts[1][1] * H }, p2 = { x: pts[2][0] * W, y: pts[2][1] * H };
+                const t = Math.min(1, progress * 1.15);
+                ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(p0.x, p0.y);
+                for (let s = 0.02; s <= t; s += 0.02) {
+                    ctx.lineTo((1-s)*(1-s)*p0.x + 2*(1-s)*s*p1.x + s*s*p2.x, (1-s)*(1-s)*p0.y + 2*(1-s)*s*(p1.y-50) + s*s*p2.y);
+                }
+                ctx.stroke();
+                drawBadge(vox.fromLabel || 'البداية', p0.x - 50, p0.y + 16, 'rgba(15,23,42,0.9)', '#fbbf24');
+                drawBadge(vox.toLabel || 'الوجهة', p2.x - 50, p2.y + 16, 'rgba(15,23,42,0.9)', '#fbbf24');
+                if (vox.statBadge) drawBadge(vox.statBadge, 24, 24, '#ef4444', '#ffffff');
+            } else if (vType === 'vox_chart') {
+                ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, W, H);
+                if (img?.complete && img.naturalWidth) { ctx.save(); ctx.globalAlpha = 0.15; drawCover(img, 0, 0, W, H, scale); ctx.restore(); }
+                ctx.fillStyle = '#fff'; ctx.font = `900 ${Math.round(W * 0.024)}px Cairo, sans-serif`; ctx.textAlign = 'center';
+                ctx.fillText(vox.chartTitle || scene.sceneTitle, W / 2, H * 0.12);
+                const bars = vox.bars || [{ label: '1960', value: 21 }, { label: '1973', value: 56 }, { label: 'اليوم', value: 102 }];
+                const maxV = Math.max(...bars.map(b => Number(b.value) || 0), 1), grow = Math.min(1, progress * 1.6);
+                const ax = W * 0.12, aw = W * 0.76, by0 = H * 0.72, mh = H * 0.46, sw = aw / bars.length, bw = Math.min(86, sw * 0.56);
+                bars.forEach((b, i) => {
+                    const val = Number(b.value) || 0;
+                    const bx = ax + i * sw + (sw - bw) / 2, bh = (val / maxV) * mh * grow;
+                    ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.roundRect(bx, by0 - bh, bw, bh, [8, 8, 0, 0]); ctx.fill();
+                    ctx.fillStyle = '#fef08a'; ctx.font = `900 ${Math.round(W * 0.02)}px Cairo, sans-serif`;
+                    ctx.fillText(Math.round(val * grow), bx + bw / 2, by0 - bh - 12);
+                    ctx.fillStyle = '#cbd5e1'; ctx.font = `700 ${Math.round(W * 0.017)}px Cairo, sans-serif`;
+                    ctx.fillText(b.label || '', bx + bw / 2, by0 + 26);
+                });
+            } else if (vType === 'vox_split') {
+                ctx.fillStyle = '#090d16'; ctx.fillRect(0, 0, W, H);
+                if (img?.complete && img.naturalWidth) {
+                    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W / 2 - 3, H); ctx.clip();
+                    drawCover(img, 0, 0, W / 2, H, scale); ctx.restore();
+                }
+                ctx.fillStyle = '#1e293b'; ctx.fillRect(W / 2 + 3, 0, W / 2 - 3, H);
+                ctx.fillStyle = '#fbbf24'; ctx.fillRect(W / 2 - 3, 0, 6, H);
+                drawBadge(vox.leftLabel || 'قبل', W * 0.16, H * 0.14, '#0f172a', '#fbbf24');
+                drawBadge(vox.rightLabel || 'بعد', W * 0.66, H * 0.14, '#f59e0b', '#090d16');
+                ctx.fillStyle = '#f8fafc'; ctx.font = `800 ${Math.round(W * 0.022)}px Cairo, sans-serif`; ctx.textAlign = 'center';
+                ctx.fillText(scene.sceneTitle || '', W * 0.75, H * 0.45);
+            } else if (vType === 'vox_timeline') {
+                if (img?.complete && img.naturalWidth) drawCover(img, 0, 0, W, H, scale);
+                ctx.fillStyle = 'rgba(5,8,17,0.74)'; ctx.fillRect(0, H * 0.46, W, H * 0.54);
+                const evs = vox.events || [{ year: '1859', label: 'البداية' }, { year: '1973', label: 'الأزمة' }, { year: '2026', label: 'اليوم' }];
+                const ly = H * 0.62, sx = W * 0.14, ex = W * 0.86;
+                ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(sx, ly); ctx.lineTo(sx + (ex - sx) * progress, ly); ctx.stroke();
+                evs.forEach((ev, i) => {
+                    const r = evs.length === 1 ? 0.5 : i / (evs.length - 1), x = sx + (ex - sx) * r;
+                    ctx.fillStyle = progress >= r * 0.8 ? '#fbbf24' : '#334155';
+                    ctx.beginPath(); ctx.arc(x, ly, 11, 0, Math.PI * 2); ctx.fill();
+                    ctx.textAlign = 'center'; ctx.fillStyle = '#fde047'; ctx.font = `900 ${Math.round(W * 0.02)}px Cairo, sans-serif`;
+                    ctx.fillText(ev.year || '', x, ly - 22);
+                    ctx.fillStyle = '#fff'; ctx.font = `700 ${Math.round(W * 0.015)}px Cairo, sans-serif`;
+                    ctx.fillText(ev.label || '', x, ly + 30);
+                });
+            } else if (vType === 'video_clip' && vid && vid.readyState >= 2) {
+                drawCover(vid, 0, 0, W, H, 1.02);
+            } else {
+                if (img?.complete && img.naturalWidth) drawCover(img, 0, 0, W, H, scale);
+            }
+
+            // شريط تقدم الفصول في أعلى الإطار
+            const totalScenes = Math.max(1, currentProject.scenes.length);
+            const segW = W / totalScenes;
+            for (let i = 0; i < totalScenes; i++) {
+                ctx.fillStyle = 'rgba(255,255,255,0.18)';
+                ctx.fillRect(i * segW + 2, 4, segW - 4, 4);
+                if (i < idx) {
+                    ctx.fillStyle = '#fbbf24'; ctx.fillRect(i * segW + 2, 4, segW - 4, 4);
+                } else if (i === idx) {
+                    ctx.fillStyle = '#fbbf24'; ctx.fillRect(i * segW + 2, 4, (segW - 4) * progress, 4);
+                }
+            }
+
+            if (showCaptions && scene.narration) {
+                const fs = Math.max(20, Math.round(W * 0.025));
+                ctx.save(); ctx.font = `900 ${fs}px Cairo, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                const words = scene.narration.trim().split(/\s+/), sp = ctx.measureText(' ').width, maxW = W * 0.86;
+                const lines = []; let ln = [], lw = 0;
+                words.forEach((w, wi) => {
+                    const ww = ctx.measureText(w).width, add = ln.length ? sp + ww : ww;
+                    if (ln.length && lw + add > maxW) { lines.push({ items: ln, width: lw }); ln = [{ w, wi, ww }]; lw = ww; }
+                    else { ln.push({ w, wi, ww }); lw += add; }
+                });
+                if (ln.length) lines.push({ items: ln, width: lw });
+                const active = Math.min(words.length - 1, Math.floor(progress * words.length));
+                const bottomY = H - Math.max(20, Math.round(H * 0.045)), lh = Math.round(fs * 1.38);
+                lines.forEach((lo, li) => {
+                    const y = bottomY - (lines.length - 1 - li) * lh;
+                    let cx = (W + lo.width) / 2;
+                    lo.items.forEach(({ w, wi, ww }) => {
+                        ctx.lineWidth = Math.max(4, Math.round(fs * 0.15)); ctx.strokeStyle = 'rgba(0,0,0,0.92)';
+                        ctx.strokeText(w, cx - ww / 2, y);
+                        ctx.fillStyle = wi === active ? '#fbbf24' : '#ffffff';
+                        ctx.fillText(w, cx - ww / 2, y);
+                        cx -= (ww + sp);
+                    });
+                });
+                ctx.restore();
+            }
+        }
+
+        // ---------- تشغيل الصوت الموحد المتزامن ----------
+        function startMasterVoiceFromScene(idx) {
+            if (currentVoiceSource) { try { currentVoiceSource.stop(); } catch {} currentVoiceSource = null; }
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+            if (isMuted) return;
+
+            const s = currentProject?.scenes?.[idx];
+            if (!s) return;
+            if (masterAudioBuffer && typeof s.audioStart === 'number') {
+                ensureAudioGraph();
+                const src = audioCtx.createBufferSource();
+                src.buffer = masterAudioBuffer;
+                src.connect(masterGain);
+                src.start(0, s.audioStart);
+                currentVoiceSource = src;
+                return;
+            }
+            if (!isRecording && window.speechSynthesis && s.narration) {
+                const u = new SpeechSynthesisUtterance(s.narration); u.lang = 'ar-SA'; window.speechSynthesis.speak(u);
+            }
+        }
+
+        function playbackLoop(ts) {
+            if (!isPlaying) return;
+            if (!sceneStartTime) sceneStartTime = ts;
+            const s = currentProject.scenes[currentSceneIdx], dur = Math.max(2, s.duration || 5), el = (ts - sceneStartTime) / 1000;
+            renderSceneFrame(currentSceneIdx, Math.min(1, el / dur));
+
+            const total = currentProject.scenes.reduce((a, x) => a + (x.duration || 5), 0);
+            let passed = 0; for (let i = 0; i < currentSceneIdx; i++) passed += (currentProject.scenes[i].duration || 5);
+            const fmt = (sec) => `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(Math.floor(sec%60)).padStart(2,'0')}`;
+            document.getElementById('timecodeBadge').textContent = `${fmt(passed + el)} / ${fmt(total)}`;
+
+            if (el >= dur) {
+                if (currentSceneIdx + 1 < currentProject.scenes.length) {
+                    currentSceneIdx++; sceneStartTime = ts; updateListHighlight(); playTransitionSfx();
+                    // إذا لم يوجد ماستر صوتي موحد نُشغّل نطق المتصفح للمشهد التالي
+                    if (!masterAudioBuffer && !isMuted && !isRecording && window.speechSynthesis && currentProject.scenes[currentSceneIdx].narration) {
+                        window.speechSynthesis.cancel();
+                        const u = new SpeechSynthesisUtterance(currentProject.scenes[currentSceneIdx].narration); u.lang = 'ar-SA'; window.speechSynthesis.speak(u);
+                    }
+                } else {
+                    stopPlayback();
+                    if (isRecording && mediaRecorder?.state !== 'inactive') mediaRecorder.stop();
+                    return;
+                }
+            }
+            animationFrameId = requestAnimationFrame(playbackLoop);
+        }
+
+        function startPlayback() {
+            ensureAudioGraph(); isPlaying = true; sceneStartTime = performance.now();
+            document.getElementById('playBtn').textContent = '⏸ إيقاف';
+            if (musicEnabled) startAmbientMusic();
+            updateListHighlight();
+            startMasterVoiceFromScene(currentSceneIdx);
+            animationFrameId = requestAnimationFrame(playbackLoop);
+        }
+
+        function stopPlayback() {
+            isPlaying = false; document.getElementById('playBtn').textContent = '▶ تشغيل';
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            stopAmbientMusic();
+            if (currentVoiceSource) { try { currentVoiceSource.stop(); } catch {} currentVoiceSource = null; }
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+        }
+
+        function togglePlay() {
+            if (isPlaying) stopPlayback();
+            else { if (currentSceneIdx >= currentProject.scenes.length - 1) currentSceneIdx = 0; startPlayback(); }
+        }
+        function prevScene() { jumpToScene(Math.max(0, currentSceneIdx - 1)); }
+        function nextScene() { jumpToScene(Math.min(currentProject.scenes.length - 1, currentSceneIdx + 1)); }
+        function jumpToScene(i) {
+            currentSceneIdx = i; sceneStartTime = performance.now();
+            updateListHighlight(); populateInspector(); renderSceneFrame(i, 0.35);
+            if (isPlaying) startMasterVoiceFromScene(i);
+        }
+        function toggleMute() { isMuted = !isMuted; document.getElementById('muteBtn').textContent = isMuted ? 'الصوت: صامت' : 'الصوت: مفعّل'; if (isMuted && currentVoiceSource) try { currentVoiceSource.stop(); } catch {} }
+        function toggleMusic() { musicEnabled = !musicEnabled; document.getElementById('musicBtn').textContent = musicEnabled ? 'موسيقى: مفعّلة' : 'موسيقى: صامتة'; if (isPlaying) { if (musicEnabled) startAmbientMusic(); else stopAmbientMusic(); } }
+        function toggleCaptions() { showCaptions = !showCaptions; document.getElementById('captionToggleBtn').textContent = showCaptions ? 'كاريوكي: مفعّل' : 'كاريوكي: مخفي'; if (!isPlaying) renderSceneFrame(currentSceneIdx, 0.35); }
+        function onChannelStyleChange() { currentProject.channelStyle = document.getElementById('channelStyleSelect').value; renderSceneFrame(currentSceneIdx, 0.35); }
+        function applyAspectRatio() {
+            const r = document.getElementById('aspectRatioSelect').value, w = canvas.parentElement;
+            w.classList.remove('aspect-video', 'aspect-[9/16]', 'aspect-square', 'max-w-sm', 'max-w-md', 'mx-auto');
+            if (r === '9:16') { canvas.width = 720; canvas.height = 1280; w.classList.add('aspect-[9/16]', 'max-w-sm', 'mx-auto'); }
+            else if (r === '1:1') { canvas.width = 1080; canvas.height = 1080; w.classList.add('aspect-square', 'max-w-md', 'mx-auto'); }
+            else { canvas.width = 1280; canvas.height = 720; w.classList.add('aspect-video'); }
+            renderSceneFrame(currentSceneIdx, 0.35);
+        }
+
+        function switchRightTab(t) {
+            const s = document.getElementById('scenesTabPane'), ins = document.getElementById('inspectorTabPane');
+            const bs = document.getElementById('tabScenesBtn'), bi = document.getElementById('tabInspectorBtn');
+            if (t === 'inspector') {
+                s.classList.add('hidden'); ins.classList.remove('hidden');
+                bi.className = 'text-xs font-bold px-3 py-1 rounded-lg bg-amber-500 text-slate-950';
+                bs.className = 'text-xs font-bold px-3 py-1 rounded-lg bg-slate-800 text-slate-300';
+                populateInspector();
+            } else {
+                ins.classList.add('hidden'); s.classList.remove('hidden');
+                bs.className = 'text-xs font-bold px-3 py-1 rounded-lg bg-amber-500 text-slate-950';
+                bi.className = 'text-xs font-bold px-3 py-1 rounded-lg bg-slate-800 text-slate-300';
+            }
+        }
+
+        function renderScenesList() {
+            const el = document.getElementById('scenesTabPane'); el.innerHTML = '';
+            currentProject.scenes.forEach((s, i) => {
+                const c = document.createElement('div');
+                c.id = `msc-${i}`; c.onclick = () => jumpToScene(i);
+                c.className = `bg-slate-950 border ${i === currentSceneIdx ? 'border-amber-500' : 'border-slate-800'} rounded-xl p-2.5 cursor-pointer flex gap-2.5 items-start`;
+                c.innerHTML = `<img src="${s.mediaUrl || ''}" class="w-16 h-12 object-cover rounded bg-slate-800 shrink-0"><div class="flex-1 min-w-0"><div class="flex items-center justify-between gap-1"><span class="text-xs font-bold text-amber-400 truncate">${i+1}. ${s.sceneTitle}</span><span class="text-[10px] text-slate-500 font-mono shrink-0">${s.duration}ث</span></div><p class="text-[11px] text-slate-300 line-clamp-2">${s.narration}</p></div>`;
+                el.appendChild(c);
+            });
+        }
+        function updateListHighlight() {
+            document.getElementById('sceneBadge').textContent = `المشهد ${currentSceneIdx+1} / ${currentProject.scenes.length}`;
+            currentProject.scenes.forEach((_, i) => document.getElementById(`msc-${i}`)?.classList.toggle('border-amber-500', i === currentSceneIdx));
+        }
+        function populateInspector() {
+            const s = currentProject.scenes[currentSceneIdx]; if (!s) return;
+            document.getElementById('editSceneTitle').value = s.sceneTitle || '';
+            document.getElementById('editSceneNarration').value = s.narration || '';
+            document.getElementById('editSceneType').value = s.visualType || 'cinematic';
+            document.getElementById('editSceneDuration').value = s.duration || 5;
+            document.getElementById('editHighlightText').value = s.voxData?.highlightText || '';
+        }
+        function updateActiveSceneField(f, v) { currentProject.scenes[currentSceneIdx][f] = v; renderScenesList(); renderSceneFrame(currentSceneIdx, 0.35); }
+        function updateActiveSceneVox(f, v) { const s = currentProject.scenes[currentSceneIdx]; if (!s.voxData) s.voxData = {}; s.voxData[f] = v; renderSceneFrame(currentSceneIdx, 0.35); }
+        function addNewScene() {
+            currentProject.scenes.push({ sceneTitle: 'مشهد جديد', narration: 'أدخل النص هنا.', visualType: 'vox_highlight', duration: 5, mediaUrl: currentProject.scenes[0]?.mediaUrl || '', mediaType: 'image', voxData: { highlightText: 'نقطة جديدة' } });
+            currentSceneIdx = currentProject.scenes.length - 1; renderScenesList(); populateInspector(); renderSceneFrame(currentSceneIdx, 0.35);
+        }
+        function deleteActiveScene() {
+            if (currentProject.scenes.length <= 1) return showToast('يجب بقاء مشهد واحد على الأقل');
+            currentProject.scenes.splice(currentSceneIdx, 1); currentSceneIdx = Math.max(0, currentSceneIdx - 1);
+            renderScenesList(); populateInspector(); renderSceneFrame(currentSceneIdx, 0.35);
+        }
+        function attachLocalFileToScene(file, kind) {
+            if (!file) return;
+            const url = URL.createObjectURL(file);
+            if (kind === 'audio') {
+                ensureAudioGraph();
+                file.arrayBuffer().then(b => audioCtx.decodeAudioData(b)).then(dec => {
+                    masterAudioBuffer = dec;
+                    alignScenesToMasterAudio(masterAudioBuffer, currentProject.scenes);
+                    renderScenesList(); showToast('تم ربط الصوت ومواءمة المشاهد عليه');
+                });
+            } else {
+                const s = currentProject.scenes[currentSceneIdx];
+                s.mediaType = file.type.startsWith('video') ? 'video' : 'image';
+                s.mediaUrl = url;
+                if (s.mediaType === 'video') { s.visualType = 'video_clip'; getOrLoadVideo(url); } else getOrLoadImage(url);
+                renderScenesList(); renderSceneFrame(currentSceneIdx, 0.35); showToast('تم تعيين الملف للمشهد');
+            }
+        }
+
+        function saveProjectLocal() {
+            try { localStorage.setItem('ez_mobile_project', JSON.stringify(currentProject)); showToast('تم حفظ المشروع في المتصفح'); }
+            catch { showToast('تعذر الحفظ المحلي'); }
+        }
+        function exportProjectJson() {
+            const blob = new Blob([JSON.stringify(currentProject, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'EditionZero_Project.json'; a.click();
+        }
+        function importProjectJson(file) {
+            if (!file) return;
+            file.text().then(t => { currentProject = JSON.parse(t); currentSceneIdx = 0; renderScenesList(); renderSceneFrame(0, 0.35); showToast('تم استيراد المشروع'); });
+        }
+
+        async function searchArchiveDirect() {
+            const q = document.getElementById('archiveSearchInput').value.trim();
+            const src = document.getElementById('archiveSourceSelect').value;
+            const type = document.getElementById('archiveTypeSelect').value;
+            const grid = document.getElementById('archiveResultsGrid');
+            if (!q) return showToast('اكتب كلمة للبحث');
+            grid.innerHTML = '<div class="col-span-full text-xs text-amber-300 py-3">جاري البحث...</div>';
+
+            try {
+                let items = [];
+                if (src === 'pixabay') {
+                    const key = getKeyByProvider('pixabay');
+                    if (!key) throw new Error('أدخل مفتاح Pixabay المجاني أولاً');
+                    const ep = type === 'video' ? `https://pixabay.com/api/videos/?key=${encodeURIComponent(key)}&q=${encodeURIComponent(q)}&per_page=12` : `https://pixabay.com/api/?key=${encodeURIComponent(key)}&q=${encodeURIComponent(q)}&image_type=photo&per_page=12`;
+                    const d = await (await fetch(ep)).json();
+                    items = type === 'video'
+                        ? (d.hits || []).map(v => ({ title: v.tags, type: 'video', thumb: v.videos?.tiny?.thumbnail, url: v.videos?.medium?.url || v.videos?.small?.url }))
+                        : (d.hits || []).map(p => ({ title: p.tags, type: 'image', thumb: p.webformatURL, url: p.largeImageURL || p.webformatURL }));
+                } else if (src === 'pexels') {
+                    const key = getKeyByProvider('pexels');
+                    if (!key) throw new Error('أدخل مفتاح Pexels المجاني أولاً');
+                    const ep = type === 'video' ? `https://api.pexels.com/videos/search?query=${encodeURIComponent(q)}&per_page=12` : `https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=12`;
+                    const d = await (await fetch(ep, { headers: { Authorization: key } })).json();
+                    items = type === 'video'
+                        ? (d.videos || []).map(v => ({ title: `Pexels #${v.id}`, type: 'video', thumb: v.image, url: v.video_files?.[0]?.link }))
+                        : (d.photos || []).map(p => ({ title: p.alt || 'Pexels', type: 'image', thumb: p.src?.medium, url: p.src?.large }));
+                } else {
+                    const ep = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' filetype:bitmap')}&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url&iiurlwidth=1024&format=json&origin=*`;
+                    const d = await (await fetch(ep)).json();
+                    items = Object.values(d?.query?.pages || {}).map(p => ({
+                        title: p.title?.replace(/^File:/, ''), type: 'image', thumb: p.imageinfo?.[0]?.thumburl || p.imageinfo?.[0]?.url, url: p.imageinfo?.[0]?.thumburl || p.imageinfo?.[0]?.url
+                    })).filter(x => x.url);
+                }
+                grid.innerHTML = '';
+                items.forEach(it => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-slate-950 border border-slate-800 rounded-xl overflow-hidden cursor-pointer hover:border-emerald-500';
+                    card.innerHTML = `<img src="${it.thumb}" class="w-full h-20 object-cover"><div class="p-1.5 text-[10px] text-slate-300 truncate">${it.title || ''}</div>`;
+                    card.onclick = () => {
+                        const s = currentProject.scenes[currentSceneIdx];
+                        s.mediaUrl = it.url; s.mediaType = it.type;
+                        if (it.type === 'video') { s.visualType = 'video_clip'; getOrLoadVideo(it.url); } else getOrLoadImage(it.url);
+                        renderScenesList(); renderSceneFrame(currentSceneIdx, 0.35);
+                        showToast(`تم التعيين للمشهد ${currentSceneIdx + 1}`);
+                    };
+                    grid.appendChild(card);
+                });
+            } catch (e) { grid.innerHTML = `<div class="col-span-full text-xs text-red-400 py-3">${e.message}</div>`; }
+        }
+
+        function exportBrowserVideo() {
+            if (isRecording) return;
+            ensureAudioGraph();
+            const btn = document.getElementById('exportVideoBtn'); btn.disabled = true; btn.textContent = 'جاري التسجيل...';
+            showToast('بدأ التسجيل — سيتم التحميل عند انتهاء العرض');
+            const stream = new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...mediaStreamDest.stream.getAudioTracks()]);
+            const mime = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m));
+            mediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 4500000 } : { videoBitsPerSecond: 4500000 });
+            recordedChunks = [];
+            mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+            mediaRecorder.onstop = () => {
+                const usedMime = mediaRecorder.mimeType || mime || 'video/webm';
+                const ext = usedMime.includes('mp4') ? 'mp4' : 'webm';
+                const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(recordedChunks, { type: usedMime }));
+                a.download = `EditionZero.${ext}`; a.click();
+                isRecording = false; btn.disabled = false; btn.textContent = '⬇ تصدير الفيديو';
+                showToast(`تم تنزيل الفيديو بصيغة ${ext.toUpperCase()}`);
+            };
+            stopPlayback(); currentSceneIdx = 0; isRecording = true; mediaRecorder.start(); startPlayback();
+        }
+
+        function initMobileStudio() {
+            loadKeys();
+            try {
+                const saved = localStorage.getItem('ez_mobile_project');
+                if (saved) currentProject = JSON.parse(saved);
+            } catch {}
+            document.getElementById('movieTitleDisplay').textContent = currentProject.title;
+            document.getElementById('topicInput').value = currentProject.title;
+            currentProject.scenes.forEach(s => { if (s.mediaUrl) getOrLoadImage(s.mediaUrl); });
+            renderScenesList(); renderSceneFrame(0, 0.35);
+        }
+
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMobileStudio);
+        else initMobileStudio();
+    </script>
+</body>
+</html>
