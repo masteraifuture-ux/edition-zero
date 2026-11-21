@@ -1,0 +1,28 @@
+{
+  "name": "Makkawi Studio Pro X",
+  "short_name": "Makkawi MX",
+  "description": "أستوديو إنتاج الفيديو بالذكاء الاصطناعي — تحرير جملة-بجملة، خرائط تفاعلية، 3D ووكيل مدير تنفيذي",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#07090e",
+  "theme_color": "#07090e",
+  "categories": ["photo", "video", "productivity", "entertainment"],
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
