@@ -113,8 +113,8 @@
                         <span id="activeAgentsCount" class="text-[10px] bg-slate-950 text-amber-300 px-2 py-0.5 rounded-full border border-slate-700">0 مفتاح</span>
                     </h2>
                     <p class="text-[10px] text-slate-300 leading-relaxed mt-0.5">
-                        <b class="text-blue-300">Gemini #1..#4:</b> للتعليق الصوتي الكامل (<span class="font-mono">gemini-3.8-flash-tts</span>) وتحليل فيديو يوتيوب (<span class="font-mono">gemini-3.8-flash</span>) حصراً ·
-                        <b class="text-purple-300">Groq / OpenRouter / OpenAI / Claude:</b> لكتابة السكربت الكامل والمدير ·
+                        <b class="text-blue-300">Gemini #1..#4 (المحرّك الرئيسي الدائم):</b> كاتب السكربتات ومقترح العناوين والمواضيع (<span class="font-mono">gemini-3.8-flash</span> + <span class="font-mono">3.5-flash-lite</span>)، الصوت الاحترافي الكامل (<span class="font-mono">gemini-3.8-flash-tts</span>)، تحليل فيديو يوتيوب، وتوليد صور الأنيميشن/ماذا لو (<span class="font-mono">gemini-3.1-flash-image</span>) ·
+                        <b class="text-purple-300">OpenRouter / Groq / OpenAI / Claude:</b> احتياط تلقائي ·
                         <b class="text-amber-300">HF FLUX / Pixabay / Pexels:</b> للصور والفيديو.
                     </p>
                 </div>
@@ -141,16 +141,37 @@
 
         <div id="setupFieldsBody" class="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
             <div>
-                <label class="block text-[10px] font-bold text-slate-400 mb-1">القسم ونوع المحتوى</label>
+                <label class="block text-[10px] font-bold text-slate-400 mb-1">القسم ونوع المحتوى (14 فئة)</label>
                 <select id="genreSelect" onchange="onGenreChange()" class="w-full bg-[#07090e] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-100">
-                    <option value="documentary">وثائقي تحقيقي وتاريخي</option>
-                    <option value="occult">وثائقيات الغيبيات والماورائيات</option>
-                    <option value="religion">الدين والتاريخ والحضارات</option>
+                    <option value="documentary">وثائقي تحقيقي وتاريخي (أبو الصادق / الدحيح)</option>
+                    <option value="economic_geo">اقتصاد وجيوسياسة وخرائط (المخبر الاقتصادي)</option>
+                    <option value="religion">قصص دينية وسيرة وتاريخ إسلامي</option>
+                    <option value="kids_stories">قصص أطفال تربوية ومغامرات ممتعة</option>
+                    <option value="what_if">محتوى تخيلي: ماذا لو؟ (سيناريوهات بديلة)</option>
+                    <option value="animation_2d3d">رسوم متحركة وكرتون وسينما أنيميشن</option>
+                    <option value="satire_comedy">نقد ساخر وكوميديا ذكية (أحمد بحيري)</option>
+                    <option value="action_mystery">أكشن وإثارة وأسرار (أنس أكشن)</option>
+                    <option value="stories">القصص الإنسانية والدرامية الحقيقية</option>
+                    <option value="occult">وثائقيات الغيبيات والماورائيات والغموض</option>
+                    <option value="business_tech">المال والتقنية والذكاء الاصطناعي</option>
+                    <option value="scifi_fantasy">الخيال العلمي والفضاء والفانتازيا</option>
+                    <option value="psychology_society">علم النفس وأسرار العقل والمجتمع</option>
                     <option value="debunk">كشف الدجل والخرافات والعلوم الزائفة</option>
-                    <option value="stories">القصص الواقعية والدرامية</option>
-                    <option value="scifi_fantasy">الخيال العلمي والفانتازيا</option>
-                    <option value="comedy">الكوميديا الساخرة والترفيه</option>
-                    <option value="business_tech">الاقتصاد والتقنية وأسرار الشركات</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-amber-300 mb-1">✍️ شخصية الكاتب المحبوب (بواسطة Gemini 3.8)</label>
+                <select id="writerPersonaSelect" class="w-full bg-[#07090e] border border-amber-400/30 rounded-lg px-2.5 py-1.5 text-[11px] text-amber-200 font-bold">
+                    <option value="auto">تلقائي — Gemini يختار الكاتب الأنسب للموضوع</option>
+                    <option value="abu_sadiq">📜 أبو الصادق — تحقيق تاريخي وغموض وأسرار موثقة</option>
+                    <option value="aldahih">🔬 الدحيح — مفارقات علمية وتاريخية وسخرية ذكية ("عزيزي")</option>
+                    <option value="mokhber">📊 المخبر الاقتصادي+ — مال وجيوسياسة وخرائط كواليس</option>
+                    <option value="anas_action">⚡ أنس أكشن — إثارة سريعة ومفاجآت متلاحقة</option>
+                    <option value="behairy">🎭 أحمد بحيري — نقد ساخر لاذع وكوميديا سوداء ذكية</option>
+                    <option value="religious_reverent">🕌 حكواتي ديني مهيب — قصص الأنبياء والصحابة والسيرة</option>
+                    <option value="kids_warm">🧸 حكواتي الأطفال — خيال دافئ وتشويق تربوي</option>
+                    <option value="what_if_cinematic">🌌 مختبر "ماذا لو؟" — تشويق علمي وتخيل سينمائي بديل</option>
                 </select>
             </div>
 
@@ -385,7 +406,10 @@
                             <label class="block text-slate-400 mb-0.5">تركيب المشهد</label>
                             <select id="editSceneType" onchange="updateActiveSceneField('visualType', this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-amber-300">
                                 <option value="vox_highlight">وثيقة + هايلايتر</option>
-                                <option value="three_stage">🧊 مسرح 3D WebGL (Three.js)</option>
+                                <option value="three_stage">🎬 مسرح 2.5D سينمائي</option>
+                                <option value="cartoon_stage">🎨 مشهد رسوم متحركة وكرتون</option>
+                                <option value="what_if_split">🌌 بوابة "ماذا لو؟" البديلة</option>
+                                <option value="sacred_parchment">🕌 إطار مخطوطة دينية ذهبي</option>
                                 <option value="brush_sketch">🖌 لوحة فرشاة وحبر (p5.brush)</option>
                                 <option value="vox_map">🌍 كرة أرضية 3D وخريطة</option>
                                 <option value="vox_chart">رسم بياني متحرك</option>
@@ -774,18 +798,89 @@
                     ['map-explainer', '3D Map Explainer', 'شرح خرائط جغرافية متقدم'],
                     ['pip-simulation', 'Blob Simulation', 'محاكاة حشود وكائنات متحركة']
                 ]
+            },
+            {
+                id: '16-animation', name: '16 · الرسوم المتحركة والكرتون (Animation & Cartoons)', theme: 'cartoon',
+                styles: [
+                    ['pixar-3d-storybook', '3D Animated Feature (Pixar Style)', 'أنيميشن ثلاثي الأبعاد سينمائي دافئ'],
+                    ['2d-kids-storybook', '2D Kids Storybook Cartoon', 'كرتون ثنائي الأبعاد لقصص الأطفال'],
+                    ['anime-action-cinematic', 'Cinematic Action Anime', 'أنمي حركي عالي الطاقة والظلال'],
+                    ['claymation-stopmotion', 'Claymation & Stop Motion', 'صلصال وستوب موشن مجسم'],
+                    ['paper-cutout-theatre', 'Paper Cutout Animation', 'تحريك قصاصات الورق الكولاجي'],
+                    ['chibi-comic-satire', 'Comic Satire Animation', 'كرتون ساخر وكاريكاتير متحرك']
+                ]
+            },
+            {
+                id: '17-sacred', name: '17 · القصص الدينية والمخطوطات الإسلامية (Sacred Art)', theme: 'illuminated',
+                styles: [
+                    ['islamic-illuminated-gold', 'Islamic Illuminated Gold', 'مخطوطات ذهبية وزخارف إسلامية مهيبة'],
+                    ['desert-lantern-epic', 'Desert Lantern Epic', 'ملحمة تاريخية دافئة بنور الفوانيس']
+                ]
+            },
+            {
+                id: '18-whatif', name: '18 · عوالم ماذا لو والخيال البديل (What-If Multiverse)', theme: 'multiverse',
+                styles: [
+                    ['whatif-multiverse-split', 'What-If Multiverse Portal', 'بوابات العوالم والخطوط الزمنية البديلة'],
+                    ['retro-futurism-chrono', 'Alternate Chrono Futurism', 'تاريخ بديل وتقنية مستقبلية']
+                ]
             }
         ];
 
         const GENRE_PROFILES = {
-            documentary: { label: 'وثائقي تحقيقي', defaultFoley: 'typewriter_tick', particleMode: 'dust', voiceName: 'Charon', secondVoice: 'Kore', oaiVoice: 'onyx', voiceNote: 'نبرة وثائقية استقصائية واثقة، إيقاع متزن مع إبراز الأرقام والتواريخ.' },
+            documentary: { label: 'وثائقي تحقيقي وتاريخي', defaultFoley: 'typewriter_tick', particleMode: 'dust', voiceName: 'Charon', secondVoice: 'Kore', oaiVoice: 'onyx', voiceNote: 'نبرة وثائقية استقصائية واثقة، إيقاع متزن مع إبراز الأرقام والتواريخ.' },
+            economic_geo: { label: 'اقتصاد وجيوسياسة وخرائط', defaultFoley: 'cash_register', particleMode: 'stars', voiceName: 'Kore', secondVoice: 'Charon', oaiVoice: 'alloy', voiceNote: 'نبرة تحليلية ذكية واضحة تكشف كواليس المال والنفوذ والصفقات العالمية.' },
+            religion: { label: 'قصص دينية وسيرة وتاريخ إسلامي', defaultFoley: 'whoosh_hit', particleMode: 'dust', voiceName: 'Charon', secondVoice: 'Aoede', oaiVoice: 'onyx', voiceNote: 'نبرة وقورة دافئة وفصيحة، مخارج حروف واضحة، إيقاع رصين مهيب يلامس القلب.' },
+            kids_stories: { label: 'قصص أطفال وتربوية', defaultFoley: 'comedy_pop', particleMode: 'stars', voiceName: 'Aoede', secondVoice: 'Puck', oaiVoice: 'nova', voiceNote: 'نبرة حكواتي دافئة مرحة وحنونة مناسبة للأطفال، بتعبيرات حية مشوّقة.' },
+            what_if: { label: 'ماذا لو؟ (تخيلي وعوالم بديلة)', defaultFoley: 'whoosh_hit', particleMode: 'stars', voiceName: 'Fenrir', secondVoice: 'Puck', oaiVoice: 'echo', voiceNote: 'نبرة درامية تساؤلية مشوقة تفتح الخيال وتصعّد المفاجآت خطوة بخطوة.' },
+            animation_2d3d: { label: 'رسوم متحركة وكرتون', defaultFoley: 'comedy_pop', particleMode: 'speed', voiceName: 'Puck', secondVoice: 'Aoede', oaiVoice: 'fable', voiceNote: 'نبرة تعبيرية حية متقمصة للشخصيات كأفلام الأنيميشن والمدبلجين المحترفين.' },
+            satire_comedy: { label: 'نقد ساخر وكوميديا ذكية', defaultFoley: 'comedy_pop', particleMode: 'speed', voiceName: 'Puck', secondVoice: 'Kore', oaiVoice: 'fable', voiceNote: 'نبرة ساخرة ذكية حادة التهكم، توقفات كوميدية محسوبة وإبراز المفارقات.' },
+            action_mystery: { label: 'أكشن وإثارة وأسرار', defaultFoley: 'heartbeat_mystery', particleMode: 'embers', voiceName: 'Fenrir', secondVoice: 'Puck', oaiVoice: 'onyx', voiceNote: 'نبرة حماسية متسارعة عالية الطاقة ومليئة بالتشويق والمفاجآت.' },
+            stories: { label: 'قصص إنسانية ودرامية', defaultFoley: 'whoosh_hit', particleMode: 'rain', voiceName: 'Aoede', secondVoice: 'Charon', oaiVoice: 'nova', voiceNote: 'نبرة حكواتي دافئة وعاطفية تتلون بين الهدوء والتوتر حسب أحداث القصة.' },
             occult: { label: 'الغيبيات والماورائيات', defaultFoley: 'heartbeat_mystery', particleMode: 'embers', voiceName: 'Charon', secondVoice: 'Fenrir', oaiVoice: 'onyx', voiceNote: 'نبرة عميقة غامضة، إيقاع بطيء مشوق، وقفات درامية قصيرة قبل كشف الأسرار.' },
-            religion: { label: 'الدين والتاريخ والحضارات', defaultFoley: 'whoosh_hit', particleMode: 'dust', voiceName: 'Charon', secondVoice: 'Aoede', oaiVoice: 'onyx', voiceNote: 'نبرة وقورة دافئة وفصيحة، مخارج حروف واضحة، إيقاع رصين مهيب.' },
-            debunk: { label: 'كشف الدجل والخرافات', defaultFoley: 'typewriter_tick', particleMode: 'dust', voiceName: 'Fenrir', secondVoice: 'Puck', oaiVoice: 'echo', voiceNote: 'نبرة حاسمة نقدية وذكية، تبدأ بتساؤل متشكك ثم تشتد ثقة عند عرض الدليل العلمي.' },
-            stories: { label: 'قصص واقعية ودرامية', defaultFoley: 'whoosh_hit', particleMode: 'rain', voiceName: 'Aoede', secondVoice: 'Charon', oaiVoice: 'nova', voiceNote: 'نبرة حكواتي دافئة وعاطفية تتلون بين الهدوء والتوتر حسب أحداث القصة.' },
-            scifi_fantasy: { label: 'الخيال العلمي والفانتازيا', defaultFoley: 'whoosh_hit', particleMode: 'stars', voiceName: 'Fenrir', secondVoice: 'Kore', oaiVoice: 'echo', voiceNote: 'نبرة ملحمية سينمائية واسعة الأفق تحفز الخيال.' },
-            comedy: { label: 'الكوميديا الساخرة', defaultFoley: 'comedy_pop', particleMode: 'speed', voiceName: 'Puck', secondVoice: 'Kore', oaiVoice: 'fable', voiceNote: 'نبرة حيوية سريعة مرحة بلمسة ساخرة خفيفة وتنوع واضح في طبقات الصوت.' },
-            business_tech: { label: 'الاقتصاد والتقنية', defaultFoley: 'cash_register', particleMode: 'stars', voiceName: 'Kore', secondVoice: 'Charon', oaiVoice: 'alloy', voiceNote: 'نبرة حديثة سريعة وذكية واضحة في عرض التحليل الاقتصادي والتقني.' }
+            business_tech: { label: 'المال والتقنية والذكاء الاصطناعي', defaultFoley: 'cash_register', particleMode: 'stars', voiceName: 'Kore', secondVoice: 'Charon', oaiVoice: 'alloy', voiceNote: 'نبرة حديثة سريعة وذكية واضحة في عرض التحليل التقني وريادة الأعمال.' },
+            scifi_fantasy: { label: 'الخيال العلمي والفضاء والفانتازيا', defaultFoley: 'whoosh_hit', particleMode: 'stars', voiceName: 'Fenrir', secondVoice: 'Kore', oaiVoice: 'echo', voiceNote: 'نبرة ملحمية سينمائية واسعة الأفق تحفز الخيال.' },
+            psychology_society: { label: 'علم النفس وأسرار العقل', defaultFoley: 'typewriter_tick', particleMode: 'dust', voiceName: 'Kore', secondVoice: 'Aoede', oaiVoice: 'nova', voiceNote: 'نبرة تحليلية عميقة قريبة من المتفرج تكشف الحيل النفسية والسلوك البشري.' },
+            debunk: { label: 'كشف الدجل والخرافات', defaultFoley: 'typewriter_tick', particleMode: 'dust', voiceName: 'Fenrir', secondVoice: 'Puck', oaiVoice: 'echo', voiceNote: 'نبرة حاسمة نقدية وذكية، تبدأ بتساؤل متشكك ثم تشتد ثقة عند عرض الدليل العلمي.' }
+        };
+
+        // شخصيات كبار صناع المحتوى العرب في الكتابة (يختارها Gemini 3.8 أو يحددها المستخدم)
+        const WRITING_PERSONAS = {
+            auto: {
+                name: 'التوليف التلقائي الذكي (حسب الموضوع)',
+                styleGuide: 'اختر أسلوب السرد العربي الأقوى تأثيراً والملائم لنوع الحلقة (مزج ذكي بين التشويق الوثائقي، خفة الظل عند اللزوم، والدقة التاريخية/العلمية).'
+            },
+            abu_sadiq: {
+                name: 'أسلوب أبو الصادق (تحقيق تاريخي وغموض موثق)',
+                styleGuide: 'اكتب بروح "أبو الصادق": صوت الراوي الباحث في الملفات المنسية والتاريخ الخفي. افتح بحقيقة صادمة أو وثيقة نادرة، استعمل عبارات التشويق العميقة ("لكن ما لم يُذكر في الكتب الرسمية..." / "المفاجأة الحقيقية لم تكن هنا...")، قدّم تفاصيل تاريخية مدهشة، وأسئلة استقصائية تجعل المشاهد لا يرمش حتى الخاتمة.'
+            },
+            aldahih: {
+                name: 'أسلوب الدحيح (علوم وتاريخ بسخرية ذكية — "عزيزي")',
+                styleGuide: 'اكتب بروح "الدحيح": ابدأ بمفارقة يومية مضحكة أو سؤال عبثي يربطك بالقصة الكبرى، خاطب المشاهد بذكاء ("عزيزي المشاهد..." / "تخيل معايا..."), بسّط أعقد النظريات العلمية أو التاريخية بأمثلة طريفة، وامزج الضحكة بالمعلومة الصادمة والالتفاتات الفلسفية العميقة في النهاية.'
+            },
+            mokhber: {
+                name: 'أسلوب المخبر الاقتصادي+ (جيوسياسة ومال وخرائط)',
+                styleGuide: 'اكتب بروح "المخبر الاقتصادي+": اربط الأحداث السياسية والتاريخية بـ"مسار الأموال والمصالح" (Follow the Money). ادخل فوراً برقم فلكي أو صفقة سرية، تتبع الخرائط والمضائق والشركات والديون، واستعمل لغة تحليلية سلسة مشوقة تكشف للجمهور كيف تُدار الكواليس.'
+            },
+            anas_action: {
+                name: 'أسلوب أنس أكشن (إيقاع سريع وأسرار ومفاجآت)',
+                styleGuide: 'اكتب بروح "أنس أكشن": إيقاع سريع متلاحق وعالي الحماس! افتح بتحدٍ أو سر لا يُصدق، ضع المشاهد داخل الحدث لحظة بلحظة، استخدم قفزات تشويقية قصيرة ومفاجآت متتالية ("بس استنى... اللي حصل بعد كده ما كانش في الحسبان!") مع طاقة إيجابية مستمرة.'
+            },
+            behairy: {
+                name: 'أسلوب أحمد بحيري (نقد ساخر لاذع وكوميديا سوداء)',
+                styleGuide: 'اكتب بروح "أحمد بحيري": سخرية ذكية لاذعة من التناقضات والادعاءات والمبالغات! افتح بتعليق ساخر حاد يفضح المفارقة فوراً، استخدم المقارنات التهكمية السريعة والكوميديا السوداء اللاذعة بعربية رشيقة قريبة من الناس، ثم وجّه الضربة الفكرية القاضية في الخاتمة.'
+            },
+            religious_reverent: {
+                name: 'أسلوب القصص الديني المهيب (سيرة وأنبياء وصحابة)',
+                styleGuide: 'اكتب بعربية فصيحة عذبة جليلة تفيض بالروحانية والخشوع والوقار. التزم بالدقة الشرعية والتاريخية التامة، صوّر المشاهد الإيمانية والصحراوية أو المعمارية بعظمة وجمال، وازرع العبرة التربوية والإيمانية العميقة في القلوب بدون تهويل.'
+            },
+            kids_warm: {
+                name: 'أسلوب حكواتي الأطفال (مغامرات وتربية وخيال)',
+                styleGuide: 'اكتب بلغة عربية جميلة ومبسطة وسهلة الفهم للأطفال، مع شخصيات محببة ومغامرات شيّقة وحوار مرح بين الأبطال، وازرع قيمة أخلاقية جميلة (الصدق، الشجاعة، التعاون، الفضول العلمي) بطريقة قصصية ممتعة غير مباشرة.'
+            },
+            what_if_cinematic: {
+                name: 'أسلوب مختبر "ماذا لو؟" (تخيلي وعلمي بديل)',
+                styleGuide: 'اكتب بروح سلسلة "ماذا لو؟": ابدأ بسؤال افتراضي جريء يقلب العالم أو التاريخ رأساً على عقب في الثانية الأولى! ثم تتبّع تداعيات هذا الافتراض لحظةً بلحظة (بعد ساعة... بعد عام... بعد قرن...) بمزيج مبهر من المنطق العلمي والخيال السينمائي الدرامي.'
+            }
         };
 
         const VISUAL_THEMES = {
@@ -803,7 +898,10 @@
             neon: { bg: '#070312', bg2: '#030108', fg: '#f8fafc', accent: '#ec4899', accentText: '#ffffff', grid: 'rgba(236,72,153,0.12)', frame: '#ec4899', mode: 'dark', rough: false },
             isometric: { bg: '#0f172a', bg2: '#080e1a', fg: '#f8fafc', accent: '#10b981', accentText: '#022c22', grid: 'rgba(16,185,129,0.1)', frame: '#34d399', mode: 'dark', rough: false },
             radar: { bg: '#04120c', bg2: '#020805', fg: '#dcfce7', accent: '#22c55e', accentText: '#052e16', grid: 'rgba(34,197,94,0.14)', frame: '#16a34a', mode: 'dark', rough: false },
-            datamap: { bg: '#0b1322', bg2: '#060a14', fg: '#f8fafc', accent: '#fbbf24', accentText: '#090d16', grid: 'rgba(148,163,184,0.1)', frame: '#fbbf24', mode: 'dark', rough: false }
+            datamap: { bg: '#0b1322', bg2: '#060a14', fg: '#f8fafc', accent: '#fbbf24', accentText: '#090d16', grid: 'rgba(148,163,184,0.1)', frame: '#fbbf24', mode: 'dark', rough: false },
+            cartoon: { bg: '#0e2447', bg2: '#07142b', fg: '#ffffff', accent: '#fbbf24', accentText: '#0f172a', grid: 'rgba(255,255,255,0.06)', frame: '#ffffff', mode: 'dark', rough: false },
+            illuminated: { bg: '#140f07', bg2: '#080502', fg: '#fef3c7', accent: '#eab308', accentText: '#090d16', grid: 'rgba(234,179,8,0.1)', frame: '#ca8a04', mode: 'dark', rough: false },
+            multiverse: { bg: '#0d061f', bg2: '#04020d', fg: '#f5f3ff', accent: '#a855f7', accentText: '#ffffff', grid: 'rgba(168,85,247,0.14)', frame: '#38bdf8', mode: 'dark', rough: false }
         };
 
         const DEFAULT_PROJECT = {
@@ -868,15 +966,15 @@
             ]
         };
 
-        // 4 خانات مخصصة لـ Gemini (للصوت 3.8 وتحليل فيديو يوتيوب حصراً) + وكلاء الكتابة والصور المستقلين
+        // 4 خانات مخصصة لـ Gemini (الكاتب الدائم + العناوين + الصوت 3.8 + مشاهدة يوتيوب + صور Nano Banana 2) + احتياطي
         const DEFAULT_SLOTS = [
-            { id: 'gem_1', providerHint: 'gemini', placeholder: 'Gemini #1 (صوت 3.8 + يوتيوب AIza...)', key: '', status: null },
-            { id: 'gem_2', providerHint: 'gemini', placeholder: 'Gemini #2 (صوت 3.8 احتياطي 1 AIza...)', key: '', status: null },
-            { id: 'gem_3', providerHint: 'gemini', placeholder: 'Gemini #3 (صوت 3.8 احتياطي 2 AIza...)', key: '', status: null },
-            { id: 'gem_4', providerHint: 'gemini', placeholder: 'Gemini #4 (صوت 3.8 احتياطي 3 AIza...)', key: '', status: null },
-            { id: 'm_groq', providerHint: 'groq', placeholder: 'Groq Free (كاتب السكربت والمدير gsk_...)', key: '', status: null },
-            { id: 'm_or', providerHint: 'openrouter', placeholder: 'OpenRouter Free (كاتب احتياطي sk-or-...)', key: '', status: null },
-            { id: 'm_hf', providerHint: 'huggingface', placeholder: 'HuggingFace FLUX (توليد الصور hf_...)', key: '', status: null },
+            { id: 'gem_1', providerHint: 'gemini', placeholder: 'Gemini #1 (الأساسي للكتابة والصوت 3.8 AIza...)', key: '', status: null },
+            { id: 'gem_2', providerHint: 'gemini', placeholder: 'Gemini #2 (احتياطي 1 للكتابة والصوت AIza...)', key: '', status: null },
+            { id: 'gem_3', providerHint: 'gemini', placeholder: 'Gemini #3 (احتياطي 2 للكتابة والصوت AIza...)', key: '', status: null },
+            { id: 'gem_4', providerHint: 'gemini', placeholder: 'Gemini #4 (احتياطي 3 للكتابة والصوت AIza...)', key: '', status: null },
+            { id: 'm_or', providerHint: 'openrouter', placeholder: 'OpenRouter Free (احتياطي كتابة sk-or-...)', key: '', status: null },
+            { id: 'm_groq', providerHint: 'groq', placeholder: 'Groq Free (احتياطي كتابة gsk_...)', key: '', status: null },
+            { id: 'm_hf', providerHint: 'huggingface', placeholder: 'HuggingFace FLUX (صور أنيميشن hf_...)', key: '', status: null },
             { id: 'm_pix', providerHint: 'pixabay', placeholder: 'Pixabay Free Key (صور وفيديو)', key: '', status: null },
             { id: 'm_oai', providerHint: 'openai', placeholder: 'OpenAI / Claude / Together / Pexels', key: '', status: null }
         ];
@@ -968,7 +1066,7 @@
             autoOpt.textContent = '✨ تلقائي حر (المخرج يقرر الخلفية أو بدونها)';
             catSel.appendChild(autoOpt);
 
-            galCat.innerHTML = '<option value="all">كل الفئات (15 فئة · 99 أسلوب)</option>';
+            galCat.innerHTML = '<option value="all">كل الفئات (18 فئة · 109 أسلوب)</option>';
             OPUSCAR_CATEGORIES.forEach(c => {
                 const opt = document.createElement('option');
                 opt.value = c.id; opt.textContent = c.name;
@@ -1018,10 +1116,20 @@
         }
 
         function onGenreChange() {
-            currentProject.genre = document.getElementById('genreSelect').value;
-            // تفعيل حوار متعدد الأصوات تلقائياً كخيار مقترح في القصص والكوميديا (مع حرية المستخدم في تغييره)
+            const gKey = document.getElementById('genreSelect').value;
+            currentProject.genre = gKey;
+            const gMeta = GENRE_PROFILES[gKey];
+            // تفعيل حوار متعدد الأصوات تلقائياً كخيار مقترح في القصص والكرتون والأطفال والكوميديا
             const ms = document.getElementById('multiSpeakerToggle');
-            if (ms) ms.checked = ['stories', 'comedy'].includes(currentProject.genre);
+            if (ms) ms.checked = ['stories', 'kids_stories', 'animation_2d3d', 'satire_comedy'].includes(gKey);
+            // ترشيح فئة الأساليب البصرية المناسبة للقسم تلقائياً إذا كانت القائمة على الوضع التلقائي أو القسم المخصص
+            if (gMeta?.suggestedCat && document.getElementById('opuscarCategorySelect')) {
+                const catSel = document.getElementById('opuscarCategorySelect');
+                if (['16-animation', '17-sacred', '18-whatif'].includes(gMeta.suggestedCat)) {
+                    catSel.value = gMeta.suggestedCat;
+                    populateStylesForCategory();
+                }
+            }
         }
 
         function openStyleGallery() { document.getElementById('styleGalleryModal').classList.remove('hidden'); renderStyleGallery(); }
@@ -1210,16 +1318,17 @@
             if (key) rateLimitedKeysUntil.set(key, Date.now() + ms);
         }
 
-        // فصل صارم للوكلاء: وكلاء الكتابة والتخطيط والمدير (Groq / OpenRouter / OpenAI / Claude / xAI) — ممنوع استهلاك مفاتيح Gemini هنا!
+        // Gemini 3.8 هو الكاتب والمخطط الدائم مع تدوير الـ 4 مفاتيح + احتياطي OpenRouter / OpenAI / Claude / Groq / xAI
         function getAvailableTextCalls() {
             const calls = [];
-            ['groq', 'openrouter', 'openai', 'anthropic', 'xai'].forEach(p => {
+            getAllKeysByProvider('gemini').forEach((key, idx) => calls.push({ provider: 'gemini', key, label: `Gemini #${idx + 1}` }));
+            ['openrouter', 'openai', 'anthropic', 'groq', 'xai'].forEach(p => {
                 getAllKeysByProvider(p).forEach(key => calls.push({ provider: p, key, label: p.toUpperCase() }));
             });
             return calls;
         }
 
-        // ---------- محلل وإصلاح JSON + وكيل الكتابة المستقل ----------
+        // ---------- محلل وإصلاح JSON + محرك الكتابة الدائم عبر Gemini 3.8 ----------
         function robustParseJson(rawText) {
             if (!rawText || typeof rawText !== 'string') throw new Error('استجابة فارغة');
             let cleaned = rawText.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
@@ -1248,27 +1357,54 @@
             return JSON.parse(repaired.replace(/,\s*([}\]])/g, '$1'));
         }
 
-        async function callAiJsonWithAutoFallback(prompt, { inlineParts = [], maxTokens = 8000, onStatus = null } = {}) {
+        async function callAiJsonWithAutoFallback(prompt, { useSearch = false, inlineParts = [], maxTokens = 16384, onStatus = null } = {}) {
             const providers = getAvailableTextCalls();
             if (!providers.length) {
-                throw new Error('أضف مفتاح كتابة مستقل (Groq أو OpenRouter المجاني) في 🔑 مفاتيح — مفاتيح Gemini مخصصة حصراً للصوت 3.8 وتحليل يوتيوب');
+                throw new Error('أدخل مفتاح Gemini واحد على الأقل في 🔑 مفاتيح ليعمل الكاتب والصوت معاً');
             }
             const errors = [];
             for (const { provider, key, label } of providers) {
-                const models = provider === 'groq' ? ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'qwen/qwen3-32b']
+                const models = provider === 'gemini' ? ['gemini-3.8-flash', 'gemini-3.5-flash-lite']
                     : provider === 'openrouter' ? ['google/gemma-3-27b-it:free', 'meta-llama/llama-3.3-70b-instruct:free', 'qwen/qwen3-235b-a22b:free']
                     : provider === 'openai' ? ['gpt-4o-mini', 'gpt-4o']
                     : provider === 'anthropic' ? ['claude-sonnet-4-5', 'claude-haiku-4-5']
+                    : provider === 'groq' ? ['openai/gpt-oss-120b', 'qwen/qwen3-32b']
                     : ['grok-3-mini'];
                 for (const model of models) {
                     try {
-                        if (onStatus) onStatus(`كاتب السكربت (${label} · ${model})...`);
+                        if (onStatus) onStatus(`الكاتب (${label} · ${model})...`);
                         let text = '';
-                        if (provider === 'anthropic') {
+                        if (provider === 'gemini') {
+                            const gemParts = [{ text: prompt }];
+                            if (Array.isArray(inlineParts) && inlineParts.length) {
+                                inlineParts.forEach(ip => { if (ip?.data && ip?.mimeType) gemParts.push({ inlineData: { mimeType: ip.mimeType, data: ip.data } }); });
+                            }
+                            const body = {
+                                contents: [{ role: 'user', parts: gemParts }],
+                                generationConfig: {
+                                    temperature: 0.78,
+                                    maxOutputTokens: Math.min(65536, Math.max(8192, maxTokens)),
+                                    ...(useSearch ? {} : { responseMimeType: 'application/json' })
+                                }
+                            };
+                            if (useSearch) body.tools = [{ google_search: {} }];
+                            const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
+                                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+                            });
+                            const data = await r.json().catch(() => ({}));
+                            if (!r.ok) {
+                                if (r.status === 429 || r.status === 403) {
+                                    markKeyRateLimited(key);
+                                    throw new Error(`حد الطلبات على ${label}`);
+                                }
+                                throw new Error(data?.error?.message || `HTTP ${r.status}`);
+                            }
+                            text = (data?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n');
+                        } else if (provider === 'anthropic') {
                             const r = await fetch('https://api.anthropic.com/v1/messages', {
                                 method: 'POST',
                                 headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true', 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] })
+                                body: JSON.stringify({ model, max_tokens: Math.min(8192, maxTokens), messages: [{ role: 'user', content: prompt }] })
                             });
                             const data = await r.json().catch(() => ({}));
                             if (!r.ok) throw new Error(data?.error?.message || `HTTP ${r.status}`);
@@ -1287,8 +1423,8 @@
                                     model,
                                     messages: [{ role: 'user', content: msgContent }],
                                     temperature: 0.75,
-                                    max_tokens: maxTokens,
-                                    ...(provider === 'openai' || provider === 'groq' ? { response_format: { type: 'json_object' } } : {})
+                                    max_tokens: Math.min(8192, maxTokens),
+                                    ...(provider === 'openai' ? { response_format: { type: 'json_object' } } : {})
                                 })
                             });
                             const data = await r.json().catch(() => ({}));
@@ -1298,10 +1434,11 @@
                         return { parsed: robustParseJson(text), provider: label, model };
                     } catch (err) {
                         errors.push(`${label}: ${err.message}`);
+                        if (provider === 'gemini' && err.message.includes('حد الطلبات')) break;
                     }
                 }
             }
-            throw new Error(`فشل وكيل الكتابة (${errors.slice(0, 2).join(' | ')})`);
+            throw new Error(`فشل الكاتب (${errors.slice(0, 2).join(' | ')})`);
         }
 
         // ---------- 2. محلل فيديو يوتيوب الشامل (Gemini 3.8 يشاهد الفيديو إطاراً بإطار ويستخرج الأسلوب كاملاً) ----------
@@ -1428,29 +1565,39 @@ ${styleListSummary}
             showToast('تم إلغاء المرجع — سيتم استخدام اختيارك من القائمة');
         }
 
-        // ---------- 3. باحث 10 عناوين يوتيوب ----------
+        // ---------- 3. باحث ومقترح 10 مواضيع وعناوين فيروسية عبر Gemini 3.8 ----------
         async function suggestYoutubeTitles() {
             const idea = document.getElementById('topicInput').value.trim();
-            if (!idea) return showToast('اكتب فكرة الحلقة أولاً');
-            const genre = GENRE_PROFILES[document.getElementById('genreSelect').value]?.label || 'وثائقي';
+            const genreKey = document.getElementById('genreSelect').value;
+            const genre = GENRE_PROFILES[genreKey]?.label || 'وثائقي';
+            const personaKey = document.getElementById('writerPersonaSelect')?.value || 'auto';
+            const personaMeta = WRITING_PERSONAS[personaKey] || WRITING_PERSONAS.auto;
             const btn = document.getElementById('titleResearchBtn');
             const box = document.getElementById('titlesSuggestionsBox');
             const grid = document.getElementById('titlesSuggestionsGrid');
             btn.disabled = true; btn.textContent = 'جاري البحث...';
             box.classList.remove('hidden');
-            grid.innerHTML = '<div class="col-span-full text-xs text-amber-300 py-2">جاري تحليل يوتيوب وتوليد 10 عناوين عالية النقر...</div>';
+            grid.innerHTML = `<div class="col-span-full text-xs text-amber-300 py-2">Gemini 3.8 يبحث ويبتكر 10 مواضيع وعناوين بأسلوب (${personaMeta.name})...</div>`;
 
             try {
                 let wikiContext = '';
-                try {
-                    const wRes = await fetch(`https://ar.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(idea)}&srlimit=4&format=json&origin=*`);
-                    const wData = await wRes.json();
-                    wikiContext = (wData?.query?.search || []).map(x => `${x.title}: ${x.snippet.replace(/<[^>]+>/g, '')}`).join(' | ');
-                } catch {}
+                if (idea) {
+                    try {
+                        const wRes = await fetch(`https://ar.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(idea)}&srlimit=4&format=json&origin=*`);
+                        const wData = await wRes.json();
+                        wikiContext = (wData?.query?.search || []).map(x => `${x.title}: ${x.snippet.replace(/<[^>]+>/g, '')}`).join(' | ');
+                    } catch {}
+                }
 
                 const refNote = youtubeStyleDna ? `أسلوب القناة المرجعية: ${youtubeStyleDna.channelSummary} بلهجة ${youtubeStyleDna.dialect}` : '';
-                const prompt = `أنت خبير استراتيجية عناوين يوتيوب في مجال (${genre}). الفكرة: "${idea}". ${refNote}. سياق: "${wikiContext || 'عام'}".
-اقترح 10 عناوين عربية قوية جداً ومثيرة للفضول. أعد JSON فقط: {"titles":[{"title":"...","angle":"الزاوية","hook":"سبب الجذب"}]}`;
+                const topicDirective = idea
+                    ? `الفكرة الأولية من المستخدم: "${idea}". طوّر حولها 10 عناوين يوتيوب عربية قاتلة وعالية النقر.`
+                    : `لم يكتب المستخدم فكرة بعد: ابتكر واختَر له من بحثك الحي 10 مواضيع وعناوين فيروسية مشوقة جداً ومناسبة لليوتيوب العربي في قسم (${genre})!`;
+                const prompt = `أنت كاتب عناوين واستراتيجي محتوى عربي محترف في قسم (${genre}).
+شخصية الكاتب المطلوبة: ${personaMeta.name} (${personaMeta.styleGuide}).
+${topicDirective}
+${refNote} ${wikiContext ? `| سياق ويكيبيديا: ${wikiContext}` : ''}
+أعد JSON فقط: {"titles":[{"title":"العنوان الجذاب كاملاً","angle":"الزاوية أو الشخصية","hook":"لماذا سينقر المشاهد فوراً؟"}]}`;
 
                 const { parsed } = await callAiJsonWithAutoFallback(prompt, { useSearch: true });
                 const list = Array.isArray(parsed.titles) ? parsed.titles.slice(0, 10) : [];
@@ -1608,46 +1755,47 @@ ${styleListSummary}
                 lastTtsErrorMsg = 'أدخل مفتاح Gemini واحد على الأقل لتوليد الصوت عبر gemini-3.8-flash-tts';
                 return null;
             }
-            for (const gem of gemKeys) {
-                try {
-                    const speechConfig = useMultiSpeaker
-                        ? {
-                            multiSpeakerVoiceConfig: {
-                                speakerVoiceConfigs: [
-                                    { speaker: 'Narrator', voiceConfig: { prebuiltVoiceConfig: { voiceName: geminiVoice || 'Charon' } } },
-                                    { speaker: 'Character', voiceConfig: { prebuiltVoiceConfig: { voiceName: secondVoice || 'Puck' } } }
-                                ]
-                            }
-                        }
-                        : { voiceConfig: { prebuiltVoiceConfig: { voiceName: geminiVoice || 'Charon' } } };
+            const speechConfig = useMultiSpeaker
+                ? {
+                    multiSpeakerVoiceConfig: {
+                        speakerVoiceConfigs: [
+                            { speaker: 'Narrator', voiceConfig: { prebuiltVoiceConfig: { voiceName: geminiVoice || 'Charon' } } },
+                            { speaker: 'Character', voiceConfig: { prebuiltVoiceConfig: { voiceName: secondVoice || 'Puck' } } }
+                        ]
+                    }
+                }
+                : { voiceConfig: { prebuiltVoiceConfig: { voiceName: geminiVoice || 'Charon' } } };
 
-                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-tts:generateContent?key=${encodeURIComponent(gem)}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ role: 'user', parts: partsList }],
-                            generationConfig: { responseModalities: ['AUDIO'], speechConfig }
-                        })
-                    });
-                    const d = await r.json().catch(() => ({}));
-                    if (!r.ok) {
-                        if (r.status === 429 || r.status === 403) markKeyRateLimited(gem);
-                        lastTtsErrorMsg = d?.error?.message || `HTTP ${r.status}`;
-                        continue;
+            for (const ttsModel of ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts']) {
+                for (const gem of gemKeys) {
+                    try {
+                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ttsModel}:generateContent?key=${encodeURIComponent(gem)}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ role: 'user', parts: partsList }],
+                                generationConfig: { responseModalities: ['AUDIO'], speechConfig }
+                            })
+                        });
+                        const d = await r.json().catch(() => ({}));
+                        if (!r.ok) {
+                            if (r.status === 429 || r.status === 403) markKeyRateLimited(gem);
+                            lastTtsErrorMsg = d?.error?.message || `HTTP ${r.status}`;
+                            continue;
+                        }
+                        const inlinePart = (d?.candidates?.[0]?.content?.parts || []).find(p => p.inlineData?.data);
+                        const b64 = inlinePart?.inlineData?.data;
+                        if (b64) {
+                            const bin = atob(b64), bytes = new Uint8Array(bin.length);
+                            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                            const isWav = bytes.length >= 12 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46;
+                            const bufData = isWav ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) : pcmToWavBuffer(bytes, 24000);
+                            return await audioCtx.decodeAudioData(bufData);
+                        }
+                        lastTtsErrorMsg = `استجابة صوتية فارغة من ${ttsModel}`;
+                    } catch (err) {
+                        lastTtsErrorMsg = err.message || `خطأ في ${ttsModel}`;
                     }
-                    const inlinePart = (d?.candidates?.[0]?.content?.parts || []).find(p => p.inlineData?.data);
-                    const b64 = inlinePart?.inlineData?.data;
-                    if (b64) {
-                        const bin = atob(b64), bytes = new Uint8Array(bin.length);
-                        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-                        // gemini-3.8-flash-tts يرجع WAV جاهزاً بترويسة RIFF افتراضياً
-                        const isWav = bytes.length >= 12 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46;
-                        const bufData = isWav ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) : pcmToWavBuffer(bytes, 24000);
-                        return await audioCtx.decodeAudioData(bufData);
-                    }
-                    lastTtsErrorMsg = 'استجابة صوتية فارغة من gemini-3.8-flash-tts';
-                } catch (err) {
-                    lastTtsErrorMsg = err.message || 'خطأ في gemini-3.8-flash-tts';
                 }
             }
             return null;
@@ -1818,7 +1966,32 @@ ${styleListSummary}
                 } catch {}
             }
 
-            // تم إزالة Pollinations نهائياً لمنع ظهور صور "Free limit reached" الصفراء على المشاهد والغلاف
+            // Gemini Nano Banana 2 (gemini-3.1-flash-image) لتوليد رسوم الأنيميشن والكرتون وماذا لو والغلاف بجودة عالية
+            const gemKeys = getAllKeysByProvider('gemini');
+            for (const gem of gemKeys) {
+                for (const imgModel of ['gemini-3.1-flash-image', 'gemini-2.5-flash-image']) {
+                    try {
+                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${imgModel}:generateContent?key=${encodeURIComponent(gem)}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+                                generationConfig: { responseModalities: ['IMAGE'] }
+                            })
+                        });
+                        if (!r.ok) {
+                            if (r.status === 429 || r.status === 403) markKeyRateLimited(gem);
+                            continue;
+                        }
+                        const d = await r.json();
+                        const part = (d?.candidates?.[0]?.content?.parts || []).find(p => p.inlineData?.data);
+                        if (part?.inlineData?.data) {
+                            return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+                        }
+                    } catch {}
+                }
+            }
+
             return null;
         }
 
@@ -2066,17 +2239,19 @@ ${styleListSummary}
                 if (recentUrls.length > windowLimit) recentUrls.shift();
             };
 
-            const allowedTemplates = ['vox_highlight', 'three_stage', 'brush_sketch', 'vox_map', 'vox_chart', 'vox_split', 'vox_timeline', 'kinetic_quote', 'cinematic', 'video_clip'];
+            const allowedTemplates = ['vox_highlight', 'three_stage', 'brush_sketch', 'cartoon_stage', 'what_if_split', 'sacred_parchment', 'vox_map', 'vox_chart', 'vox_split', 'vox_timeline', 'kinetic_quote', 'cinematic', 'video_clip'];
             const allowedTrans = ['cross_dissolve', 'whip_pan', 'card_expand', 'ink_wipe', 'glitch', 'film_burn'];
             const allowedRecipes = ['dolly_push_in', 'editorial_zoom_out', 'depth_3d_tilt', 'orbit_3d_stage', 'whip_slide_reveal', 'flip_card_expand', 'brush_ink_reveal'];
             const allowedFx = ['auto', 'gold_sparkle', 'fire_embers', 'frost_shimmer', 'cyber_matrix', 'comic_burst', 'none'];
-            const genreDefaultFx = project.genre === 'occult' ? 'fire_embers'
-                : (project.genre === 'scifi_fantasy' ? 'cyber_matrix'
-                : (project.genre === 'comedy' ? 'comic_burst'
-                : (['religion', 'business_tech'].includes(project.genre) ? 'gold_sparkle' : 'frost_shimmer')));
+            const genreDefaultFx = project.genre === 'occult' || project.genre === 'action_mystery' ? 'fire_embers'
+                : (['scifi_fantasy', 'what_if'].includes(project.genre) ? 'cyber_matrix'
+                : (['satire_comedy', 'animation_2d3d', 'kids_stories'].includes(project.genre) ? 'comic_burst'
+                : (['religion', 'business_tech', 'economic_geo'].includes(project.genre) ? 'gold_sparkle' : 'frost_shimmer')));
             const backupPool = DEFAULT_PROJECT.scenes.map(s => s.mediaUrl);
             const verifiedPool = [];
-            const hasAiArtKey = Boolean(getKeyByProvider('huggingface') || getKeyByProvider('together') || getKeyByProvider('openai'));
+            const hasDedicatedArtKey = Boolean(getKeyByProvider('huggingface') || getKeyByProvider('together') || getKeyByProvider('openai'));
+            const hasAiArtKey = hasDedicatedArtKey || getAllKeysByProvider('gemini').length > 0;
+            let geminiArtCount = 0;
 
             for (let i = 0; i < total; i++) {
                 const sc = project.scenes[i];
@@ -2149,7 +2324,9 @@ ${styleListSummary}
                     const styleDesc = youtubeStyleDna?.visualDirection || project.opuscarStyle;
                     let picked = null;
 
-                    if (hasAiArtKey && sc.visualMode === 'ai_art' && (sc.imagePrompt || sc.archiveQuery)) {
+                    const canUseAiHere = hasAiArtKey && sc.visualMode === 'ai_art' && (sc.imagePrompt || sc.archiveQuery) && (hasDedicatedArtKey || geminiArtCount < 4);
+                    if (canUseAiHere) {
+                        if (!hasDedicatedArtKey) geminiArtCount++;
                         const aiArt = await generateHighResImageWithFallback(sc.imagePrompt || sc.archiveQuery, styleDesc);
                         if (aiArt) picked = { url: aiArt, type: 'image' };
                     }
@@ -2341,10 +2518,12 @@ ${styleListSummary}
         function startExecutiveDirectorProduction() { return runProductionPipeline(true); }
 
         async function runProductionPipeline(useExecutiveDirector = false) {
-            const topic = document.getElementById('topicInput').value.trim();
-            if (!topic) return showToast('أدخل موضوع الحلقة أو القصة أولاً');
+            let topic = document.getElementById('topicInput').value.trim();
             const genre = document.getElementById('genreSelect').value;
             const genreMeta = GENRE_PROFILES[genre] || GENRE_PROFILES.documentary;
+            const rawPersona = document.getElementById('writerPersonaSelect')?.value || 'auto';
+            const effectivePersonaKey = rawPersona === 'auto' ? (genreMeta.defaultPersona || 'aldahih') : rawPersona;
+            const personaMeta = WRITING_PERSONAS[effectivePersonaKey] || WRITING_PERSONAS.aldahih;
             const userChosenMeta = findOpuscarStyleMeta(document.getElementById('opuscarStyleSelect').value);
             const frameworkKey = document.getElementById('storyFrameworkSelect')?.value || 'auto';
             const frameworkRule = STORYTELLING_FRAMEWORKS[frameworkKey] || STORYTELLING_FRAMEWORKS.auto;
@@ -2388,20 +2567,31 @@ ${styleListSummary}
                     await analyzeYoutubeReference(true);
                 }
 
-                // 2) بحث حقائق ويكيبيديا + الويب مجاناً بدون استهلاك أي مفتاح LLM
+                // 1.5) إذا ترك المستخدم خانة الموضوع فارغة، يبتكر Gemini 3.8 موضوعاً فيروسياً تلقائياً حسب القسم والشخصية!
+                if (!topic) {
+                    setP(6, `💡 Gemini 3.8 يبتكر موضوعاً فيروسياً بأسلوب (${personaMeta.name})...`);
+                    const pickRes = await callAiJsonWithAutoFallback(
+                        `اقترح موضوعاً عربياً قوياً وفيروسياً واحداً لليوتيوب في قسم (${genreMeta.label}) بأسلوب (${personaMeta.name}: ${personaMeta.styleGuide}). أعد JSON فقط: {"pickedTitle":"العنوان الكامل الجذاب"}`,
+                        { useSearch: true, maxTokens: 600 }
+                    );
+                    topic = pickRes.parsed?.pickedTitle || `أسرار مدهشة في ${genreMeta.label}`;
+                    document.getElementById('topicInput').value = topic;
+                }
+
+                // 2) بحث حقائق ويكيبيديا + الويب مجاناً
                 setP(7, '🔎 جلب حقائق ويكيبيديا والويب لبناء السكربت...');
                 const wikiFacts = await fetchWikipediaFacts(topic);
 
-                // 3) وكيل المدير التنفيذي (مستقل عبر كاتب/مدير Groq أو OpenRouter أو OpenAI — لا يلمس Gemini)
+                // 3) وكيل المدير التنفيذي (يعمل الآن عبر Gemini 3.8 دائماً مع احتياطي كامل)
                 let execPlan = null;
                 if (useExecutiveDirector) {
                     setP(10, '🧠 الوكيل المدير يوزع المهام ويضبط الإيقاع...');
                     setAgentCard('exec', 'يخطط...', 'running');
                     const gemCount = getAllKeysByProvider('gemini').length;
-                    const writerPool = getAvailableTextCalls().map(c => c.label).join(', ');
-                    logDirectorDecision(`فصل الوكلاء: الكتابة (${writerPool || 'غير متوفر'}) | الصوت والمشاهدة (${gemCount} Gemini 3.8)`);
+                    const writerPool = getAvailableTextCalls().map(c => c.label).slice(0, 4).join(', ');
+                    logDirectorDecision(`محرك Gemini 3.8 (${gemCount} مفتاح) | الشخصية: ${personaMeta.name} | القسم: ${genreMeta.label} | الوكلاء: ${writerPool}`);
 
-                    const planPrompt = `أنت "الوكيل المدير التنفيذي" (Executive Orchestrator). صمّم خطة إخراج وتوقيت لفيلم حول "${topic}" (${genreMeta.label} | ${mins} د | الأسلوب: ${activeVisualLabel}).
+                    const planPrompt = `أنت "الوكيل المدير التنفيذي" (Executive Orchestrator). صمّم خطة إخراج وتوقيت لفيلم حول "${topic}" (${genreMeta.label} | ${mins} د | الكاتب: ${personaMeta.name} | الأسلوب: ${activeVisualLabel}).
 ${youtubeStyleDna ? `مرجع اليوتيوب الإلزامي: ${youtubeStyleDna.visualDirection || ''} | الهوك: ${youtubeStyleDna.hookFormula || ''}` : ''}
 أعد JSON فقط:
 {"pacingStrategy":{"hookMaxSec":4.5,"bodySpeed":"fast|balanced|cinematic","hookTransitionSec":0.30,"bodyTransitionSec":0.45},"engineMix":{"threeStagePct":20,"brushPct":15,"dataMapPct":35,"cinematicPct":30},"visualIdentity":{"styleName":"...","backdropMode":"fullbleed_no_bg|styled_backdrop","mapMode":"orthographic_3d|regional_zoom|tactical_radar","palette":{"bg":"#070b14","bg2":"#02040a","fg":"#f8fafc","accent":"#fbbf24","accentText":"#090d16","grid":"rgba(255,255,255,0.05)","frame":"#1e293b","rough":false}},"directorBrief":"توجيه موجز للكاتب والمونتير","voiceRoleBrief":"English voice acting direction"}`;
@@ -2419,7 +2609,7 @@ ${youtubeStyleDna ? `مرجع اليوتيوب الإلزامي: ${youtubeStyleD
                     }
                     const mix = execPlan.engineMix || {};
                     const pace = execPlan.pacingStrategy || {};
-                    document.getElementById('directorPlanSummary').textContent = `${pace.bodySpeed || 'متزن'} | 3D:${mix.threeStagePct || 20}% · Maps:${mix.dataMapPct || 35}%`;
+                    document.getElementById('directorPlanSummary').textContent = `${personaMeta.name} | 3D:${mix.threeStagePct || 20}% · Maps:${mix.dataMapPct || 35}%`;
                     logDirectorDecision(`خطة المدير: ${execPlan.directorBrief || 'جاهزة'}`);
                     setAgentCard('exec', 'أقرّ الخطة ✓', 'done');
                 }
@@ -2432,52 +2622,62 @@ ${youtubeStyleDna ? `مرجع اليوتيوب الإلزامي: ${youtubeStyleD
                     ? `\n- هذا الإنتاج حوار بين شخصيتين ("Narrator" و "Character"): حدد في كل مشهد "speaker": "Narrator" أو "Character".`
                     : '';
 
+                const isImaginativeCartoon = ['animation_2d3d', 'kids_stories', 'what_if', 'scifi_fantasy', 'satire_comedy'].includes(genre);
+                const visualTypeGuidance = genre === 'religion'
+                    ? 'استخدم "sacred_parchment" للمواعظ والآيات والقصص الروحانية، و"vox_map" للأماكن التاريخية (مكة، المدينة، بيت المقدس، بغداد، الأندلس)، و"brush_sketch" و"cinematic" للمشاهد التراثية.'
+                    : genre === 'what_if'
+                        ? 'استخدم "what_if_split" لمقارنة (الواقع vs ماذا لو؟)، و"cartoon_stage" و"three_stage" و"vox_map" للمحاكاة الخيالية.'
+                        : isImaginativeCartoon
+                            ? 'استخدم "cartoon_stage" بكثرة لمشاهد الأنيميشن والكرتون والقصص المصورة مع "visualMode":"ai_art" ووصف رسومي غني في "imagePrompt"، ونوّع مع "brush_sketch" و"what_if_split" و"kinetic_quote".'
+                            : 'مكان/معركة/جغرافيا ← "vox_map" مع إحداثيات دقيقة [lat, lon] في "voxData.fromCoords" و"voxData.toCoords" و"fromLabel" و"toLabel" و"mapPattern". أرقام/اقتصاد ← "vox_chart" (مع voxData.bars) | مقارنة ← "vox_split" | تسلسل زمني ← "vox_timeline" | صدمة ← "kinetic_quote" أو "vox_highlight" | مشهد درامي ← "cinematic" أو "three_stage" أو "brush_sketch".';
+
                 const directorRules = `قواعد الإخراج والكتابة الاحترافية:
+0. **شخصية الكاتب الإلزامية (${personaMeta.name}):** ${personaMeta.styleGuide}
 1. ${ARABIC_STORYTELLING_MASTERY}
 2. إطار السرد المطلوب: ${frameworkRule}
 3. حقائق موثقة للاستناد إليها:\n${wikiFacts || 'استند لحقائق موثقة ودقيقة في هذا المجال.'}
 4. استعمل صيغ الهوك القوية: ${HOOK_FORMULAS_21.slice(0, 4).join(' | ')} — ابدأ فوراً بصدمة/مفارقة تثبت العنوان بدون أي تحية.
 5. القفل البصري وطول كل مشهد في "scenes":
    - اكتب في كل مشهد "narration" غنية ومتدفقة من **20 إلى 30 كلمة عربية** (~10–14 ثانية إلقاء طبيعي) مرتبطة سببياً بالمشهد السابق واللاحق ("لكن / لذلك")!
-   - مكان/معركة/جغرافيا ← "vox_map" مع وضع إحداثيات حقيقية دقيقة [lat, lon] داخل "voxData.fromCoords" و"voxData.toCoords" (مثلاً إيران [32.4, 53.7]، برسيبوليس [29.93, 52.89]، شوشان [32.19, 48.25]) و"fromLabel" و"toLabel" و"mapPattern" من الـ 13.
-   - أرقام/مقارنة ← "vox_chart" (مع voxData.bars) | مقارنة شيئين ← "vox_split" | تسلسل زمني ← "vox_timeline" | صدمة ← "kinetic_quote" أو "vox_highlight" | مشهد درامي/مكاني ← "cinematic" أو "three_stage" أو "brush_sketch".
+   - ${visualTypeGuidance}
    - إلزامي لكل مشهد كتابة:
-     * "wikiPageQuery": اسم المقالة الدقيقة في ويكيبيديا الإنجليزية (2-3 كلمات فقط مثل: "Persepolis", "Elam", "Cyrus the Great", "Safavid Iran", "Qajar Iran") لجلب صورتها الحقيقية مباشرة!
-     * "archiveQuery": كلمات بحث إنجليزية دقيقة لويكيميديا كومنز (3-5 كلمات بدون رموز).
-     * "imagePrompt": وصف سينمائي متوافق مع الحقبة بدون نصوص.
+     * "wikiPageQuery": اسم المقالة الدقيقة في ويكيبيديا الإنجليزية (2-3 كلمات فقط مثل: "Persepolis", "Elam", "Cyrus the Great") لجلب صورتها الحقيقية مباشرة!
+     * "archiveQuery": كلمات بحث إنجليزية دقيقة لويكيميديا كومنز وأوبن فيرس (3-5 كلمات بدون رموز).
+     * "imagePrompt": وصف فني إنجليزي دقيق جداً (لرسوم الكرتون/الأنيميشن/الخيال حدد Pixar 3D أو 2D Cartoon أو Anime حسب الأسلوب، بدون نصوص).
      * "shotRecipe"، "pixelFx"، "transitionType"، "foleyType".
 6. ${DIRECTOR_MAP_SYSTEM_BIBLE}${execPlan ? `\nتوجيه المدير: ${execPlan.directorBrief}` : ''}`;
 
-                // 4) وكيل كتابة السكربت الكامل بالمدة المطلوبة فعلياً (بدون توقف مبكر عند 12 جملة!)
+                // 4) كاتب السكربت الدائم عبر Gemini 3.8 بالمدة المطلوبة فعلياً (بدون توقف مبكر عند 12 جملة!)
                 let metaHead = null;
                 let rawScenes = [];
-                let lastProvider = 'Writer';
+                let lastProvider = 'Gemini 3.8';
 
-                if (useExecutiveDirector) setAgentCard('script', 'يكتب السكربت الكامل...', 'running');
+                if (useExecutiveDirector) setAgentCard('script', `يكتب (${personaMeta.name})...`, 'running');
                 if (mins <= 3) {
-                    setP(16, `1/5 كاتب السكربت يصيغ السكربت الكامل (${mins} د · ${targetScenes} مشهد)...`);
+                    setP(16, `1/5 Gemini 3.8 يكتب السكربت بأسلوب (${personaMeta.name} · ${mins} د · ${targetScenes} مشهد)...`);
                     const fullPrompt = `أنت كاتب سكربتات يوتيوب محترف ومخرج سردي في مجال (${genreMeta.label}) بأسلوب (${activeVisualLabel}).
+تقمّص بالكامل روح وصوت وأسلوب الكاتب: ${personaMeta.name} (${personaMeta.styleGuide}).
 الموضوع: "${topic}" | المدة المطلوبة: ${mins} دقيقة (~${targetScenes} مشهد، كل مشهد 20–28 كلمة مترابطة).${ytDnaInstruction}${dialogueNote}
 
 ${directorRules}
 ${isAutoFreeStyle ? `صمّم أيضاً "visualIdentity": {"styleName":"...","backdropMode":"fullbleed_no_bg|styled_backdrop","mapMode":"orthographic_3d|regional_zoom|tactical_radar","palette":{"bg":"#070b14","bg2":"#02040a","fg":"#f8fafc","accent":"#fbbf24","accentText":"#090d16","grid":"rgba(255,255,255,0.06)","frame":"#1e293b","rough":false}}.` : ''}
 
-أضف "voiceInstruction" بالإنجليزية، و"geminiVoice" من ("Charon","Fenrir","Puck","Kore","Aoede") و"secondVoice"، و"seoSummary" و"seoTags" (5 هاشتاجات).
+أضف "voiceInstruction" بالإنجليزية لـ Gemini 3.8 TTS تصف نبرة الأداء (${personaMeta.voiceHint})، و"geminiVoice" من ("Charon","Fenrir","Puck","Kore","Aoede") و"secondVoice"، و"seoSummary" و"seoTags" (5 هاشتاجات).
 أعد JSON فقط:
-{"title":"...","seoSummary":"...","seoTags":["#..."],"voiceInstruction":"...","geminiVoice":"Charon","secondVoice":"Puck",${isAutoFreeStyle ? '"visualIdentity":{"styleName":"...","backdropMode":"fullbleed_no_bg","mapMode":"orthographic_3d","palette":{"bg":"#070b14","bg2":"#02040a","fg":"#f8fafc","accent":"#fbbf24","accentText":"#090d16","grid":"rgba(255,255,255,0.06)","frame":"#1e293b","rough":false}},' : ''}"scenes":[{"sceneTitle":"...","speaker":"Narrator|Character","narration":"20-28 كلمة عربية متصلة بالمشهد السابق واللاحق","visualType":"...","visualMode":"archive|stock|ai_art","shotRecipe":"...","pixelFx":"...","transitionType":"...","foleyType":"...","wikiPageQuery":"Exact English Wikipedia Article Title","archiveQuery":"Specific English keywords","fallbackQuery":"Alt English keywords","imagePrompt":"Detailed cinematic English prompt, no text","voxData":{}}]}`;
+{"title":"...","seoSummary":"...","seoTags":["#..."],"voiceInstruction":"...","geminiVoice":"${personaMeta.defaultVoice || genreMeta.voiceName}","secondVoice":"Puck",${isAutoFreeStyle ? '"visualIdentity":{"styleName":"...","backdropMode":"fullbleed_no_bg","mapMode":"orthographic_3d","palette":{"bg":"#070b14","bg2":"#02040a","fg":"#f8fafc","accent":"#fbbf24","accentText":"#090d16","grid":"rgba(255,255,255,0.06)","frame":"#1e293b","rough":false}},' : ''}"scenes":[{"sceneTitle":"...","speaker":"Narrator|Character","narration":"20-28 كلمة عربية متصلة بالمشهد السابق واللاحق","visualType":"...","visualMode":"${isImaginativeCartoon ? 'ai_art' : 'archive|stock|ai_art'}","shotRecipe":"...","pixelFx":"...","transitionType":"...","foleyType":"...","wikiPageQuery":"Exact English Wikipedia Article Title","archiveQuery":"Specific English keywords","fallbackQuery":"Alt English keywords","imagePrompt":"Detailed cinematic/cartoon English prompt, no text","voxData":{}}]}`;
 
-                    const res = await callAiJsonWithAutoFallback(fullPrompt, { maxTokens: 8000, onStatus: (m) => setP(22, m) });
+                    const res = await callAiJsonWithAutoFallback(fullPrompt, { useSearch: true, maxTokens: 16384, onStatus: (m) => setP(22, m) });
                     metaHead = res.parsed;
                     lastProvider = res.provider;
                     rawScenes = Array.isArray(res.parsed.scenes) ? res.parsed.scenes : [];
                 } else {
                     const numActs = Math.max(2, Math.min(8, Math.ceil(mins / 2.5)));
-                    setP(14, `1/5 تخطيط السكربت الكامل لفيلم ${mins} دقيقة (${numActs} فصول متكاملة)...`);
-                    const outlinePrompt = `أنت Showrunner محترف تبني هيكل فيلم وثائقي/قصصي مدته ${mins} دقيقة بالضبط حول "${topic}" (${genreMeta.label}).${ytDnaInstruction}
+                    setP(14, `1/5 Gemini 3.8 يخطط فيلم ${mins} دقيقة (${numActs} فصول) بأسلوب (${personaMeta.name})...`);
+                    const outlinePrompt = `أنت Showrunner محترف تبني هيكل فيلم مدته ${mins} دقيقة بالضبط حول "${topic}" (${genreMeta.label}) بأسلوب (${personaMeta.name}: ${personaMeta.styleGuide}).${ytDnaInstruction}
 قسّم الموضوع زمنياً وموضوعياً إلى ${numActs} فصول كبرى متصاعدة التشويق، بحيث يغطي كل فصل حقبة أو محوراً واضحاً دون تكرار، مع إجمالي ~${targetScenes} مشهد.
 أعد JSON فقط:
-{"title":"...","seoSummary":"...","seoTags":["#..."],"voiceInstruction":"...","geminiVoice":"Charon","secondVoice":"Puck","chapters":[{"chapterTitle":"...","focus":"الأحداث والأماكن المحددة في هذا الفصل","cliffhanger":"نقطة التشويق للانتقال للفصل التالي"}]}`;
-                    const outRes = await callAiJsonWithAutoFallback(outlinePrompt, { maxTokens: 3200 });
+{"title":"...","seoSummary":"...","seoTags":["#..."],"voiceInstruction":"${personaMeta.voiceHint}","geminiVoice":"${personaMeta.defaultVoice || genreMeta.voiceName}","secondVoice":"Puck","chapters":[{"chapterTitle":"...","focus":"الأحداث والأماكن المحددة في هذا الفصل","cliffhanger":"نقطة التشويق للانتقال للفصل التالي"}]}`;
+                    const outRes = await callAiJsonWithAutoFallback(outlinePrompt, { useSearch: true, maxTokens: 4096 });
                     metaHead = outRes.parsed;
                     lastProvider = outRes.provider;
                     const chapters = Array.isArray(metaHead.chapters) && metaHead.chapters.length ? metaHead.chapters : Array.from({ length: numActs }, (_, k) => ({ chapterTitle: `الفصل ${k + 1}`, focus: topic, cliffhanger: 'تصعيد قادم' }));
@@ -2488,12 +2688,13 @@ ${isAutoFreeStyle ? `صمّم أيضاً "visualIdentity": {"styleName":"...","b
                         const ch = chapters[cIdx];
                         setP(16 + Math.round(((cIdx + 1) / chapters.length) * 24), `1/5 صياغة الفصل ${cIdx + 1}/${chapters.length} (${ch.chapterTitle})...`);
                         const actPrompt = `اكتب الفصل ${cIdx + 1}/${chapters.length} من فيلم "${metaHead.title || topic}": "${ch.chapterTitle}" (${ch.focus}).
+تقمص بالكامل أسلوب (${personaMeta.name}): ${personaMeta.styleGuide}.
 ${prevClosing ? `أكمل السرد فوراً وبسلاسة من آخر جملة: "${prevClosing}"` : 'هذا هو الفصل الأول: ابدأ بهوك افتتاحي صادم يثبت العنوان في أول ثانيتين بدون تحية!'}
 التشويق نحو الفصل القادم: ${ch.cliffhanger}.
 إلزامي توليد **${scenesPerAct} مشاهد كاملة** في مصفوفة "scenes" (كل مشهد 20–30 كلمة عربية متماسكة، وليس سطراً قصيراً!).${dialogueNote}
 ${directorRules}
-أعد JSON فقط: {"scenes":[{"sceneTitle":"...","speaker":"Narrator|Character","narration":"20-30 كلمة عربية مشوقة","visualType":"...","visualMode":"archive|stock|ai_art","shotRecipe":"...","pixelFx":"...","transitionType":"...","foleyType":"...","wikiPageQuery":"Exact English Wikipedia Title","archiveQuery":"Specific English Wikimedia query","fallbackQuery":"Alt English query","imagePrompt":"Detailed English prompt, no text","voxData":{}}]}`;
-                        const actRes = await callAiJsonWithAutoFallback(actPrompt, { maxTokens: 8000 });
+أعد JSON فقط: {"scenes":[{"sceneTitle":"...","speaker":"Narrator|Character","narration":"20-30 كلمة عربية مشوقة","visualType":"...","visualMode":"${isImaginativeCartoon ? 'ai_art' : 'archive|stock|ai_art'}","shotRecipe":"...","pixelFx":"...","transitionType":"...","foleyType":"...","wikiPageQuery":"Exact English Wikipedia Title","archiveQuery":"Specific English Wikimedia query","fallbackQuery":"Alt English query","imagePrompt":"Detailed English prompt, no text","voxData":{}}]}`;
+                        const actRes = await callAiJsonWithAutoFallback(actPrompt, { maxTokens: 16384 });
                         const actScenes = Array.isArray(actRes.parsed?.scenes) ? actRes.parsed.scenes : [];
                         if (actScenes.length) {
                             rawScenes.push(...actScenes);
@@ -2510,7 +2711,7 @@ ${directorRules}
                 const wordCount = fullScriptText.split(/\s+/).filter(Boolean).length;
                 if (useExecutiveDirector) {
                     setAgentCard('script', `${scenes.length} مشهد (${wordCount} كلمة) ✓`, 'done');
-                    logDirectorDecision(`الكاتب (${lastProvider}) أنتج السكربت الكامل: ${scenes.length} مشهد (${wordCount} كلمة | احتفاظ ${qaReport.score}%).`);
+                    logDirectorDecision(`الكاتب (${lastProvider} · ${personaMeta.name}) أنتج ${scenes.length} مشهد (${wordCount} كلمة | احتفاظ ${qaReport.score}%).`);
                 }
 
                 const freeVisual = isAutoFreeStyle ? (execPlan?.visualIdentity || metaHead?.visualIdentity || pickFallbackVisualIdentity(topic, genre)) : null;
@@ -2519,6 +2720,7 @@ ${directorRules}
                     title: metaHead?.title || topic,
                     fullScript: fullScriptText,
                     genre,
+                    writerPersona: effectivePersonaKey,
                     multiSpeaker,
                     opuscarStyle: userChosenMeta.slug,
                     opuscarTheme: userChosenMeta.theme,
@@ -2527,8 +2729,8 @@ ${directorRules}
                     mapMode: freeVisual?.mapMode || (genre === 'occult' || genre === 'business_tech' ? 'tactical_radar' : 'orthographic_3d'),
                     customPalette: youtubeStyleDna?.palette || (freeVisual?.palette || null),
                     aspectRatio: document.getElementById('aspectRatioSelect').value,
-                    voiceInstruction: (execPlan?.voiceRoleBrief ? `${execPlan.voiceRoleBrief} ` : '') + (metaHead?.voiceInstruction || ''),
-                    geminiVoice: metaHead?.geminiVoice || genreMeta.voiceName,
+                    voiceInstruction: (execPlan?.voiceRoleBrief ? `${execPlan.voiceRoleBrief} ` : '') + (metaHead?.voiceInstruction || personaMeta.voiceHint || ''),
+                    geminiVoice: metaHead?.geminiVoice || personaMeta.defaultVoice || genreMeta.voiceName,
                     secondVoice: metaHead?.secondVoice || genreMeta.secondVoice,
                     seoSummary: metaHead?.seoSummary || '',
                     seoTags: Array.isArray(metaHead?.seoTags) ? metaHead.seoTags : [],
@@ -2567,15 +2769,20 @@ ${directorRules}
                 setP(64, `3/5 وكيل الصور يجهز لقطات حقيقية لـ ${scenes.length} مشهد...`);
                 const windowLen = scenes.length > 35 ? 24 : 9999;
                 const recentAdded = [];
-                const isHistProd = ['religion', 'documentary', 'stories', 'occult'].includes(genre)
+                const isHistProd = ['religion', 'documentary', 'stories', 'occult', 'economic_geo'].includes(genre)
                     || /(تاريخ|بغداد|خوارزمي|إيران|فارس|حضارة|قرن|عصر|أندلس|فرعون|خليفة|حرب|قديم)/.test(topic);
-                const hasAiArtKey = Boolean(getKeyByProvider('huggingface') || getKeyByProvider('together') || getKeyByProvider('openai'));
+                const hasDedArtKey = Boolean(getKeyByProvider('huggingface') || getKeyByProvider('together') || getKeyByProvider('openai'));
+                const hasAnyArtKey = hasDedArtKey || getAllKeysByProvider('gemini').length > 0;
+                let gemArtUsed = 0;
+                const maxGemArtPerRun = isImaginativeCartoon ? 6 : 2;
                 for (let i = 0; i < scenes.length; i++) {
                     if (i % 2 === 0 || i === scenes.length - 1) {
                         setP(64 + Math.round((i / scenes.length) * 18), `3/5 جلب وتجهيز لقطة المشهد ${i + 1} من ${scenes.length}...`);
                     }
                     const sc = scenes[i];
-                    if (hasAiArtKey && sc.visualMode === 'ai_art') {
+                    const wantAiArt = hasAnyArtKey && (sc.visualMode === 'ai_art' || (isImaginativeCartoon && (i === 0 || i % 3 === 0))) && (hasDedArtKey || gemArtUsed < maxGemArtPerRun);
+                    if (wantAiArt) {
+                        if (!hasDedArtKey) gemArtUsed++;
                         const art = await generateHighResImageWithFallback(sc.imagePrompt || sc.archiveQuery || sc.sceneTitle, activeVisualLabel);
                         if (art) {
                             sc.mediaUrl = art; sc.mediaType = 'image';
@@ -3295,6 +3502,160 @@ ${directorRules}
             return { scale: 1 + e * 0.09 + energy * 0.015, dx: 0, dy: 0, rot: 0 };
         }
 
+        // مسرح الأنيميشن والكرتون (Cel-Shaded Comic/Storybook Panel + Halftone Glow + Speech Callout)
+        function renderCartoonStage(W, H, progress, theme, energy, img, stageTop, stageBottom, titleText, vox = {}) {
+            const stageH = stageBottom - stageTop;
+            const e = MotionPhysics.easeOutBack(Math.min(1, progress * 1.8));
+            const cw = W * (W > H ? 0.74 : 0.86), ch = stageH * 0.78;
+            const cx = (W - cw) / 2, cy = stageTop + stageH * 0.05;
+
+            ctx.save();
+            // توهج كرتوني خلف الإطار
+            const sun = ctx.createRadialGradient(W / 2, cy + ch / 2, 10, W / 2, cy + ch / 2, cw * 0.65);
+            sun.addColorStop(0, `${theme.accent || '#fbbf24'}44`);
+            sun.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = sun; ctx.fillRect(0, stageTop, W, stageH);
+
+            // إطار كرتوني سميك بارز بظل صلب (Cel-Shading Hard Shadow)
+            ctx.save();
+            ctx.translate(W / 2, cy + ch / 2);
+            const scalePop = 0.94 + 0.06 * e + energy * 0.015;
+            ctx.scale(scalePop, scalePop);
+            ctx.fillStyle = '#020617';
+            ctx.beginPath(); ctx.roundRect(-cw / 2 + 10, -ch / 2 + 10, cw, ch, 24); ctx.fill();
+
+            ctx.beginPath(); ctx.roundRect(-cw / 2, -ch / 2, cw, ch, 24); ctx.clip();
+            if (img?.complete && img.naturalWidth > 0) {
+                drawCover(img, -cw / 2, -ch / 2, cw, ch, 1.04 + progress * 0.05);
+            } else {
+                const bg = ctx.createLinearGradient(-cw / 2, -ch / 2, cw / 2, ch / 2);
+                bg.addColorStop(0, '#1d4ed8'); bg.addColorStop(1, '#7c3aed');
+                ctx.fillStyle = bg; ctx.fillRect(-cw / 2, -ch / 2, cw, ch);
+            }
+            ctx.restore();
+
+            // حد أبيض وذهبي سميك على طريقة الكوميكس والأنيميشن
+            ctx.save();
+            ctx.translate(W / 2, cy + ch / 2);
+            ctx.scale(scalePop, scalePop);
+            ctx.lineWidth = 7; ctx.strokeStyle = '#ffffff';
+            ctx.beginPath(); ctx.roundRect(-cw / 2, -ch / 2, cw, ch, 24); ctx.stroke();
+            ctx.lineWidth = 2.5; ctx.strokeStyle = theme.accent || '#fbbf24';
+            ctx.beginPath(); ctx.roundRect(-cw / 2 + 5, -ch / 2 + 5, cw - 10, ch - 10, 20); ctx.stroke();
+            ctx.restore();
+
+            // فقاعة حديث / لافتة قصصية أعلى الإطار
+            const hl = vox.highlightText || titleText;
+            if (hl) {
+                const fs = Math.max(16, Math.round(W * (H > W ? 0.036 : 0.02)));
+                ctx.font = `900 ${fs}px Cairo, sans-serif`;
+                const bw = Math.min(W * 0.82, ctx.measureText(hl).width + 38), bh = fs + 18;
+                const bx = (W - bw) / 2, by = Math.min(stageBottom - bh - 4, cy + ch + 10);
+                ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 18); ctx.fill();
+                ctx.lineWidth = 3.5; ctx.strokeStyle = '#0f172a'; ctx.stroke();
+                ctx.fillStyle = '#0f172a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(hl, W / 2, by + bh / 2 + 1, bw - 20);
+            }
+            ctx.restore();
+        }
+
+        // مسرح "ماذا لو؟" الثنائي (الواقع vs الخط الزمني البديل ببوابة طاقة وسطى)
+        function renderWhatIfSplit(W, H, progress, theme, energy, img, stageTop, stageBottom, titleText, vox = {}) {
+            const stageH = stageBottom - stageTop;
+            const splitX = W / 2 + Math.sin(progress * Math.PI * 2) * 6;
+            ctx.save();
+            // النصف الأيمن: الواقع المألوف
+            ctx.save(); ctx.beginPath(); ctx.rect(splitX + 4, stageTop, W - splitX - 4, stageH); ctx.clip();
+            ctx.filter = 'grayscale(55%) contrast(1.05)';
+            if (img?.complete && img.naturalWidth) drawCover(img, splitX, stageTop, W - splitX, stageH, 1.04 + progress * 0.04);
+            ctx.filter = 'none';
+            ctx.fillStyle = 'rgba(15,23,42,0.42)'; ctx.fillRect(splitX, stageTop, W - splitX, stageH);
+            ctx.restore();
+
+            // النصف الأيسر: عالم "ماذا لو؟" المتوهج
+            ctx.save(); ctx.beginPath(); ctx.rect(0, stageTop, splitX - 4, stageH); ctx.clip();
+            ctx.filter = 'saturate(1.45) hue-rotate(-14deg) contrast(1.12)';
+            if (img?.complete && img.naturalWidth) drawCover(img, 0, stageTop, splitX, stageH, 1.08 + progress * 0.08);
+            ctx.filter = 'none';
+            const glow = ctx.createLinearGradient(0, stageTop, splitX, stageBottom);
+            glow.addColorStop(0, 'rgba(168,85,247,0.32)'); glow.addColorStop(1, 'rgba(56,189,248,0.18)');
+            ctx.fillStyle = glow; ctx.fillRect(0, stageTop, splitX, stageH);
+            ctx.restore();
+
+            // بوابة الشق الكوني في المنتصف
+            const seam = ctx.createLinearGradient(splitX - 18, 0, splitX + 18, 0);
+            seam.addColorStop(0, 'rgba(168,85,247,0)');
+            seam.addColorStop(0.5, `rgba(56,189,248,${0.85 + energy * 0.15})`);
+            seam.addColorStop(1, 'rgba(168,85,247,0)');
+            ctx.fillStyle = seam; ctx.fillRect(splitX - 18, stageTop, 36, stageH);
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(splitX - 2, stageTop, 4, stageH);
+
+            drawBadge(vox.rightLabel || 'الواقع', W * 0.68, stageTop + 18, '#0f172a', '#e2e8f0');
+            drawBadge(vox.leftLabel || 'ماذا لو؟', W * 0.14, stageTop + 18, '#a855f7', '#ffffff');
+            if (titleText) {
+                const fs = Math.max(16, Math.round(W * 0.02));
+                ctx.font = `900 ${fs}px Cairo, sans-serif`; ctx.textAlign = 'center';
+                ctx.fillStyle = 'rgba(15,6,34,0.86)';
+                const tw = Math.min(W * 0.8, ctx.measureText(titleText).width + 36);
+                ctx.beginPath(); ctx.roundRect((W - tw) / 2, stageBottom - fs - 22, tw, fs + 16, 12); ctx.fill();
+                ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.fillStyle = '#f8fafc'; ctx.textBaseline = 'middle';
+                ctx.fillText(titleText, W / 2, stageBottom - fs / 2 - 14, tw - 18);
+            }
+            ctx.restore();
+        }
+
+        // مسرح المخطوطة الذهبية والقصص الدينية المهيب (Arch / Mihrab Illuminated Frame)
+        function renderSacredParchment(W, H, progress, theme, energy, img, stageTop, stageBottom, titleText, vox = {}) {
+            const stageH = stageBottom - stageTop;
+            const cw = W * (W > H ? 0.68 : 0.84), ch = stageH * 0.78;
+            const cx = (W - cw) / 2, cy = stageTop + stageH * 0.04;
+            ctx.save();
+            // هالة نور ذهبية هادئة
+            const halo = ctx.createRadialGradient(W / 2, cy + ch * 0.45, 10, W / 2, cy + ch * 0.45, cw * 0.75);
+            halo.addColorStop(0, 'rgba(234,179,8,0.24)'); halo.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = halo; ctx.fillRect(0, stageTop, W, stageH);
+
+            // إطار قوسي تراثي مزدوج
+            const archR = Math.min(cw * 0.18, 70);
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(cx, cy + ch);
+            ctx.lineTo(cx, cy + archR);
+            ctx.quadraticCurveTo(W / 2, cy - archR * 0.55, cx + cw, cy + archR);
+            ctx.lineTo(cx + cw, cy + ch);
+            ctx.closePath();
+            ctx.clip();
+            if (img?.complete && img.naturalWidth) {
+                ctx.filter = 'sepia(22%) contrast(1.08)';
+                drawCover(img, cx, cy, cw, ch, 1.03 + progress * 0.05);
+                ctx.filter = 'none';
+            }
+            const vig = ctx.createLinearGradient(0, cy, 0, cy + ch);
+            vig.addColorStop(0, 'rgba(20,15,7,0.18)'); vig.addColorStop(1, 'rgba(12,8,3,0.68)');
+            ctx.fillStyle = vig; ctx.fillRect(cx, cy, cw, ch);
+            ctx.restore();
+
+            ctx.lineWidth = 4; ctx.strokeStyle = '#eab308';
+            ctx.beginPath();
+            ctx.moveTo(cx, cy + ch); ctx.lineTo(cx, cy + archR);
+            ctx.quadraticCurveTo(W / 2, cy - archR * 0.55, cx + cw, cy + archR);
+            ctx.lineTo(cx + cw, cy + ch); ctx.closePath(); ctx.stroke();
+
+            const hl = vox.highlightText || titleText;
+            if (hl) {
+                const fs = Math.max(17, Math.round(W * 0.02));
+                ctx.font = `900 ${fs}px Cairo, sans-serif`;
+                const tw = Math.min(W * 0.82, ctx.measureText(hl).width + 42);
+                const bx = (W - tw) / 2, by = Math.min(stageBottom - fs - 20, cy + ch + 8);
+                ctx.fillStyle = 'rgba(20,14,6,0.92)'; ctx.beginPath(); ctx.roundRect(bx, by, tw, fs + 16, 10); ctx.fill();
+                ctx.lineWidth = 2; ctx.strokeStyle = '#eab308'; ctx.stroke();
+                ctx.fillStyle = '#fef3c7'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(hl, W / 2, by + (fs + 16) / 2 + 1, tw - 20);
+            }
+            ctx.restore();
+        }
+
         function renderSceneFrame(idx, progress) {
             try {
                 const scene = currentProject?.scenes?.[idx];
@@ -3313,12 +3674,12 @@ ${directorRules}
                 const energy = getLiveAudioEnergy();
                 const cam = getShotCraftTransform(scene.shotRecipe || 'dolly_push_in', progress, energy);
 
-                const genreDefaultFx = currentProject.genre === 'occult' ? 'fire_embers'
-                    : (currentProject.genre === 'scifi_fantasy' ? 'cyber_matrix'
-                    : (currentProject.genre === 'comedy' ? 'comic_burst' : 'gold_sparkle'));
+                const genreDefaultFx = ['occult', 'action_mystery'].includes(currentProject.genre) ? 'fire_embers'
+                    : (['scifi_fantasy', 'what_if'].includes(currentProject.genre) ? 'cyber_matrix'
+                    : (['satire_comedy', 'animation_2d3d', 'kids_stories'].includes(currentProject.genre) ? 'comic_burst' : 'gold_sparkle'));
                 const fxMode = (!scene.pixelFx || scene.pixelFx === 'auto') ? genreDefaultFx : scene.pixelFx;
                 const directorNoBg = currentProject.backdropMode === 'fullbleed_no_bg';
-                const isFullBleedTemplate = directorNoBg || ['cinematic', 'video_clip', 'three_stage', 'vox_timeline'].includes(vType);
+                const isFullBleedTemplate = directorNoBg || ['cinematic', 'video_clip', 'three_stage', 'vox_timeline', 'what_if_split'].includes(vType);
 
                 if (isFullBleedTemplate) {
                     const cg = ctx.createLinearGradient(0, 0, 0, H);
@@ -3355,6 +3716,15 @@ ${directorRules}
                     drawPixelFxLayer(fxMode, W, H, progress, energy, theme);
                 } else if (vType === 'brush_sketch') {
                     renderBrushSketch(W, H, progress, theme, img, STAGE_TOP, STAGE_BOTTOM, vox.highlightText || scene.sceneTitle);
+                } else if (vType === 'cartoon_stage') {
+                    renderCartoonStage(W, H, progress, theme, energy, img, STAGE_TOP, STAGE_BOTTOM, scene.sceneTitle, vox);
+                    drawPixelFxLayer(fxMode, W, H, progress, energy, theme);
+                } else if (vType === 'what_if_split') {
+                    renderWhatIfSplit(W, H, progress, theme, energy, img, STAGE_TOP, STAGE_BOTTOM, scene.sceneTitle, vox);
+                    drawPixelFxLayer('cyber_matrix', W, H, progress, energy, theme);
+                } else if (vType === 'sacred_parchment') {
+                    renderSacredParchment(W, H, progress, theme, energy, img, STAGE_TOP, STAGE_BOTTOM, scene.sceneTitle, vox);
+                    drawPixelFxLayer('gold_sparkle', W, H, progress, energy, theme);
                 } else if (vType === 'vox_highlight') {
                     const cw = W * (isVertical ? 0.84 : 0.70), ch = STAGE_H * 0.76;
                     const cx = (W - cw) / 2 + cam.dx, cy = STAGE_TOP + STAGE_H * 0.03 + cam.dy;
@@ -3977,6 +4347,10 @@ ${directorRules}
             currentSceneIdx = 0;
             initOpuscarSelectors();
             if (currentProject.genre) document.getElementById('genreSelect').value = currentProject.genre;
+            if (currentProject.writerPersona && document.getElementById('writerPersonaSelect')) {
+                const wp = document.getElementById('writerPersonaSelect');
+                if ([...wp.options].some(o => o.value === currentProject.writerPersona)) wp.value = currentProject.writerPersona;
+            }
             if (currentProject.geminiVoice && document.getElementById('narratorVoiceSelect')) {
                 const nv = document.getElementById('narratorVoiceSelect');
                 if ([...nv.options].some(o => o.value === currentProject.geminiVoice)) nv.value = currentProject.geminiVoice;
@@ -4576,7 +4950,7 @@ ${historySnippet ? `سياق المحادثة الأخير:\n${historySnippet}` 
 {
   "reply": "رد عربي ذكي وواضح يشرح للمستخدم ما قمت بتعديله بالضبط",
   "actions": [
-    {"type":"update_scene","sceneIndex":0,"fields":{"sceneTitle":"...","narration":"...","visualType":"vox_highlight|three_stage|brush_sketch|vox_map|vox_chart|vox_split|vox_timeline|kinetic_quote|cinematic|video_clip","shotRecipe":"dolly_push_in|editorial_zoom_out|depth_3d_tilt|orbit_3d_stage|whip_slide_reveal|flip_card_expand|brush_ink_reveal","pixelFx":"auto|gold_sparkle|fire_embers|frost_shimmer|cyber_matrix|comic_burst|none","transitionType":"cross_dissolve|whip_pan|card_expand|ink_wipe|glitch|film_burn","foleyType":"auto|heartbeat_mystery|cash_register|typewriter_tick|comedy_pop|whoosh_hit","duration":4.5,"highlightText":"..."}},
+    {"type":"update_scene","sceneIndex":0,"fields":{"sceneTitle":"...","narration":"...","visualType":"vox_highlight|three_stage|brush_sketch|cartoon_stage|what_if_split|sacred_parchment|vox_map|vox_chart|vox_split|vox_timeline|kinetic_quote|cinematic|video_clip","shotRecipe":"dolly_push_in|editorial_zoom_out|depth_3d_tilt|orbit_3d_stage|whip_slide_reveal|flip_card_expand|brush_ink_reveal","pixelFx":"auto|gold_sparkle|fire_embers|frost_shimmer|cyber_matrix|comic_burst|none","transitionType":"cross_dissolve|whip_pan|card_expand|ink_wipe|glitch|film_burn","foleyType":"auto|heartbeat_mystery|cash_register|typewriter_tick|comedy_pop|whoosh_hit","duration":4.5,"highlightText":"..."}},
     {"type":"insert_scene","afterIndex":0,"scene":{"sceneTitle":"...","narration":"...","visualType":"...","attachmentIndex":0}},
     {"type":"delete_scene","sceneIndex":0},
     {"type":"attach_media_to_scene","attachmentIndex":0,"sceneIndex":0},
@@ -4677,5 +5051,5 @@ ${historySnippet ? `سياق المحادثة الأخير:\n${historySnippet}` 
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMobileStudio);
         else initMobileStudio();
     </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a5e4f204dbc8d8ef',t:'MTc5NTMxOTE2OA=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a5e4f204dbc8d8ef',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
