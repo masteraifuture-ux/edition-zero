@@ -1775,16 +1775,19 @@ ${styleListSummary}
 
             const hf = getKeyByProvider('huggingface');
             if (hf) {
-                try {
-                    const r = await fetch('https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell', {
-                        method: 'POST', headers: { Authorization: `Bearer ${hf}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ inputs: fullPrompt, parameters: { width: 1280, height: 720 } })
-                    });
-                    if (r.ok) {
-                        const blob = await r.blob();
-                        if (blob.type.startsWith('image/')) return await blobToDataUrl(blob);
-                    }
-                } catch {}
+                for (const hfModel of ['black-forest-labs/FLUX.1-schnell', 'stabilityai/stable-diffusion-xl-base-1.0']) {
+                    try {
+                        const r = await fetch(`https://router.huggingface.co/hf-inference/models/${hfModel}`, {
+                            method: 'POST',
+                            headers: { Authorization: `Bearer ${hf}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ inputs: fullPrompt, parameters: { width: 1280, height: 720 } })
+                        });
+                        if (r.ok) {
+                            const blob = await r.blob();
+                            if (blob.type.startsWith('image/') && blob.size > 8000) return await blobToDataUrl(blob);
+                        }
+                    } catch {}
+                }
             }
 
             const tog = getKeyByProvider('together');
@@ -1815,16 +1818,7 @@ ${styleListSummary}
                 } catch {}
             }
 
-            try {
-                const seed = Math.floor(Math.random() * 999999);
-                const pUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=1280&height=720&model=flux&nologo=true&seed=${seed}`;
-                const r = await fetch(pUrl);
-                if (r.ok) {
-                    const blob = await r.blob();
-                    if (blob.type.startsWith('image/')) return await blobToDataUrl(blob);
-                }
-                return pUrl;
-            } catch {}
+            // تم إزالة Pollinations نهائياً لمنع ظهور صور "Free limit reached" الصفراء على المشاهد والغلاف
             return null;
         }
 
@@ -1838,7 +1832,16 @@ ${styleListSummary}
                 const genreMeta = GENRE_PROFILES[currentProject.genre] || GENRE_PROFILES.documentary;
                 const styleDesc = youtubeStyleDna?.visualDirection || findOpuscarStyleMeta(currentProject.opuscarStyle).enName;
                 const aiUrl = await generateHighResImageWithFallback(`YouTube viral thumbnail dramatic scene about: ${title}`, styleDesc);
-                lastThumbnailBgUrl = aiUrl || currentProject.scenes[0]?.mediaUrl || '';
+                let pickedBg = aiUrl;
+                if (!pickedBg) {
+                    const realScene = (currentProject.scenes || []).find(s => s.mediaUrl && !String(s.mediaUrl).includes('pollinations') && !String(s.mediaUrl).startsWith('data:image/svg'));
+                    if (realScene) pickedBg = realScene.mediaUrl;
+                }
+                if (!pickedBg) {
+                    const live = await fetchMediaCandidates(currentProject.scenes?.[0]?.wikiPageQuery || currentProject.scenes?.[0]?.archiveQuery || title, false, { isHistorical: true });
+                    if (live.length) pickedBg = live[0].url;
+                }
+                lastThumbnailBgUrl = pickedBg || '';
                 drawYoutubeThumbnailCanvas(title, genreMeta.label, lastThumbnailBgUrl);
                 if (!silent) showToast('تم توليد غلاف يوتيوب 16:9 بنجاح');
             } finally {
@@ -1913,7 +1916,7 @@ ${styleListSummary}
             navigator.clipboard?.writeText(el.value).then(() => showToast('تم نسخ الوصف والفصول والهاشتاجات')).catch(() => { el.select(); document.execCommand('copy'); showToast('تم النسخ'); });
         }
 
-        // ---------- 7. جلب الوسائط الذكي متعدد الأرشيفات (Met Museum + Internet Archive + Wikimedia + Stock + توليد AI) ----------
+        // ---------- 7. جلب الوسائط الحقيقية المصححة (Wikipedia PageImages + Wikimedia 960px + Openverse + Stock) ----------
         const mediaQueryCache = new Map();
         const OFF_TOPIC_HISTORICAL_RE = /\b(padlock|cyber|binary|laptop|smartphone|computer|server|neon|code|matrix|bitcoin|crypto|keyboard|office|suit|stock market|screen|tablet|robot|hologram)\b/i;
 
@@ -1925,91 +1928,105 @@ ${styleListSummary}
             return true;
         }
 
-        async function fetchMediaCandidates(query, preferVideo = false, { isHistorical = false, mustAvoid = [] } = {}) {
-            const normKey = `${preferVideo ? 'v' : 'i'}:${isHistorical ? 'h' : 'g'}:${(query || '').toLowerCase().trim()}`;
+        async function fetchMediaCandidates(query, preferVideo = false, { isHistorical = false, mustAvoid = [], wikiPageQuery = '' } = {}) {
+            const qClean = (query || '').trim();
+            const wpClean = (wikiPageQuery || qClean).trim();
+            const normKey = `${preferVideo ? 'v' : 'i'}:${isHistorical ? 'h' : 'g'}:${qClean.toLowerCase()}:${wpClean.toLowerCase()}`;
             if (mediaQueryCache.has(normKey)) return mediaQueryCache.get(normKey);
 
             const pix = getKeyByProvider('pixabay'), pxl = getKeyByProvider('pexels'), results = [];
+            const seen = new Set();
+            const addRes = (url, type, title) => {
+                if (!url || seen.has(url) || url.includes('pollinations.ai')) return;
+                seen.add(url);
+                results.push({ url, type, title: title || '' });
+            };
 
-            // 1) للمحتوى التاريخي/الحضاري: أرشيف متحف المتروبوليتان المجاني (Met Museum Open Access) + ويكيميديا + أرشيف الإنترنت
-            if (isHistorical) {
+            // 1) صور مقالات ويكيبيديا المباشرة (أعلى دقة وتطابق موضوعي مع الأماكن والشخصيات والحضارات + CORS كامل)
+            for (const lang of ['en', 'ar']) {
+                if (results.length >= 6) break;
+                const searchStr = lang === 'ar' ? qClean : wpClean;
+                if (!searchStr) continue;
                 try {
-                    const metSearch = await (await fetch(`https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&q=${encodeURIComponent(query)}`)).json();
-                    const objIds = (metSearch?.objectIDs || []).slice(0, 5);
-                    for (const oid of objIds) {
-                        const obj = await (await fetch(`https://collectionapi.metmuseum.org/public/collection/v1/objects/${oid}`)).json();
-                        const u = obj?.primaryImageSmall || obj?.primaryImage;
-                        if (u && isCandidateRelevant(obj?.title, query, true, mustAvoid)) {
-                            results.push({ url: u, type: 'image', title: obj?.title || '' });
+                    const wpUrl = `https://${lang}.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(searchStr)}&gsrlimit=6&prop=pageimages&piprop=thumbnail&pithumbsize=960&format=json&origin=*`;
+                    const d = await (await fetch(wpUrl)).json();
+                    Object.values(d?.query?.pages || {}).forEach(p => {
+                        const u = p?.thumbnail?.source;
+                        const t = p?.title || '';
+                        if (u && !/\.svg/i.test(u) && !/flag_of|map_of|icon|logo|blank/i.test(u) && isCandidateRelevant(t, searchStr, isHistorical, mustAvoid)) {
+                            addRes(u, 'image', t);
                         }
-                    }
+                    });
                 } catch {}
             }
 
-            if (results.length < 8) {
+            // 2) ويكيميديا كومنز بحجم 960px المعتمد رسمياً (960px معتمد في Wikimedia بدون خطأ 400!)
+            if (results.length < 10 && qClean) {
                 try {
-                    const ep = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query + ' filetype:bitmap')}&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url&iiurlwidth=1024&format=json&origin=*`;
+                    const ep = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(qClean + ' filetype:bitmap')}&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url&iiurlwidth=960&format=json&origin=*`;
                     const d = await (await fetch(ep)).json();
                     Object.values(d?.query?.pages || {}).forEach(p => {
                         const u = p.imageinfo?.[0]?.thumburl || p.imageinfo?.[0]?.url;
                         const t = p.title || '';
-                        if (u && !/\.svg$/i.test(u) && isCandidateRelevant(t, query, isHistorical, mustAvoid)) {
-                            results.push({ url: u, type: 'image', title: t });
+                        if (u && !/\.svg$/i.test(u) && !/\.pdf/i.test(u) && isCandidateRelevant(t, qClean, isHistorical, mustAvoid)) {
+                            addRes(u, 'image', t);
                         }
                     });
                 } catch {}
             }
 
-            if (results.length < 6) {
+            // 3) Pixabay & Pexels للصور والفيديو الحقيقي (عند توفر المفاتيح)
+            if (pix && results.length < 12 && qClean) {
                 try {
-                    const iaUrl = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(`(${query}) AND mediatype:image`)}&fl[]=identifier,title&rows=6&output=json`;
-                    const ia = await (await fetch(iaUrl)).json();
-                    (ia?.response?.docs || []).forEach(doc => {
-                        if (doc.identifier && isCandidateRelevant(doc.title, query, isHistorical, mustAvoid)) {
-                            results.push({ url: `https://archive.org/services/img/${doc.identifier}`, type: 'image', title: doc.title || '' });
+                    if (preferVideo) {
+                        const d = await (await fetch(`https://pixabay.com/api/videos/?key=${encodeURIComponent(pix)}&q=${encodeURIComponent(qClean)}&per_page=10`)).json();
+                        (d.hits || []).forEach(v => {
+                            const u = v.videos?.medium?.url || v.videos?.small?.url;
+                            if (u && isCandidateRelevant(v.tags, qClean, isHistorical, mustAvoid)) addRes(u, 'video', v.tags);
+                        });
+                    }
+                    const d2 = await (await fetch(`https://pixabay.com/api/?key=${encodeURIComponent(pix)}&q=${encodeURIComponent(qClean)}&image_type=photo&orientation=horizontal&per_page=12`)).json();
+                    (d2.hits || []).forEach(p => {
+                        const u = p.largeImageURL || p.webformatURL;
+                        if (u && isCandidateRelevant(p.tags, qClean, isHistorical, mustAvoid)) addRes(u, 'image', p.tags);
+                    });
+                } catch {}
+            }
+
+            if (pxl && results.length < 12 && qClean) {
+                try {
+                    if (preferVideo) {
+                        const d = await (await fetch(`https://api.pexels.com/videos/search?query=${encodeURIComponent(qClean)}&per_page=8`, { headers: { Authorization: pxl } })).json();
+                        (d.videos || []).forEach(v => { const u = v.video_files?.[0]?.link; if (u) addRes(u, 'video', ''); });
+                    }
+                    const d2 = await (await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(qClean)}&per_page=10`, { headers: { Authorization: pxl } })).json();
+                    (d2.photos || []).forEach(p => {
+                        const u = p.src?.large || p.src?.medium;
+                        if (u && isCandidateRelevant(p.alt, qClean, isHistorical, mustAvoid)) addRes(u, 'image', p.alt || '');
+                    });
+                } catch {}
+            }
+
+            // 4) Openverse Creative Commons (مجاني ومفتوح بدون مفتاح)
+            if (results.length < 10 && qClean) {
+                try {
+                    const ov = await (await fetch(`https://api.openverse.org/v1/images/?q=${encodeURIComponent(qClean)}&page_size=8`)).json();
+                    (ov?.results || []).forEach(item => {
+                        const u = item?.url || item?.thumbnail;
+                        if (u && !/\.svg/i.test(u) && isCandidateRelevant(item?.title, qClean, isHistorical, mustAvoid)) {
+                            addRes(u, 'image', item?.title || '');
                         }
                     });
                 } catch {}
             }
 
-            if (results.length < 6 && !isHistorical) {
+            if (results.length < 6 && !isHistorical && qClean) {
                 try {
-                    const nasa = await (await fetch(`https://images-api.nasa.gov/search?q=${encodeURIComponent(query)}&media_type=image&page_size=6`)).json();
+                    const nasa = await (await fetch(`https://images-api.nasa.gov/search?q=${encodeURIComponent(qClean)}&media_type=image&page_size=6`)).json();
                     (nasa?.collection?.items || []).forEach(it => {
                         const u = it.links?.[0]?.href;
                         const t = it.data?.[0]?.title || '';
-                        if (u && isCandidateRelevant(t, query, isHistorical, mustAvoid)) results.push({ url: u, type: 'image', title: t });
-                    });
-                } catch {}
-            }
-
-            if (pix && results.length < 8) {
-                try {
-                    if (preferVideo) {
-                        const d = await (await fetch(`https://pixabay.com/api/videos/?key=${encodeURIComponent(pix)}&q=${encodeURIComponent(query)}&per_page=10`)).json();
-                        (d.hits || []).forEach(v => {
-                            const u = v.videos?.medium?.url || v.videos?.small?.url;
-                            if (u && isCandidateRelevant(v.tags, query, isHistorical, mustAvoid)) results.push({ url: u, type: 'video', title: v.tags });
-                        });
-                    }
-                    const d2 = await (await fetch(`https://pixabay.com/api/?key=${encodeURIComponent(pix)}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=12`)).json();
-                    (d2.hits || []).forEach(p => {
-                        const u = p.largeImageURL || p.webformatURL;
-                        if (u && isCandidateRelevant(p.tags, query, isHistorical, mustAvoid)) results.push({ url: u, type: 'image', title: p.tags });
-                    });
-                } catch {}
-            }
-
-            if (pxl && results.length < 8) {
-                try {
-                    if (preferVideo) {
-                        const d = await (await fetch(`https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=8`, { headers: { Authorization: pxl } })).json();
-                        (d.videos || []).forEach(v => { const u = v.video_files?.[0]?.link; if (u) results.push({ url: u, type: 'video', title: '' }); });
-                    }
-                    const d2 = await (await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=10`, { headers: { Authorization: pxl } })).json();
-                    (d2.photos || []).forEach(p => {
-                        const u = p.src?.large || p.src?.medium;
-                        if (u && isCandidateRelevant(p.alt, query, isHistorical, mustAvoid)) results.push({ url: u, type: 'image', title: p.alt || '' });
+                        if (u && isCandidateRelevant(t, qClean, isHistorical, mustAvoid)) addRes(u, 'image', t);
                     });
                 } catch {}
             }
@@ -2020,7 +2037,7 @@ ${styleListSummary}
 
         function preloadAndCheckMedia(url, type) {
             return new Promise((resolve) => {
-                if (!url) return resolve(false);
+                if (!url || String(url).includes('pollinations.ai')) return resolve(false);
                 if (url.startsWith('data:')) { getOrLoadImage(url); return resolve(true); }
                 if (type === 'video') {
                     const v = getOrLoadVideo(url);
@@ -2032,7 +2049,7 @@ ${styleListSummary}
                     if (img.complete && img.naturalWidth > 0) return resolve(true);
                     img.onload = () => { if (!isPlaying) renderSceneFrame(currentSceneIdx, 0.35); resolve(img.naturalWidth > 0); };
                     img.onerror = () => resolve(false);
-                    setTimeout(() => resolve(Boolean(img.complete && img.naturalWidth > 0)), 4000);
+                    setTimeout(() => resolve(Boolean(img.complete && img.naturalWidth > 0)), 4500);
                 }
             });
         }
@@ -2040,7 +2057,7 @@ ${styleListSummary}
         async function auditAndRepairProject(project, onStatus = null) {
             const report = { deduped: 0, repairedAssets: 0, variedTemplates: 0, fixedVox: 0 };
             const total = project.scenes.length;
-            const windowLimit = total > 35 ? 24 : 9999; // منع التكرار الكلي للقصير، ونافذة 24 مشهد للمشاريع الطويلة جداً (حتى 30د)
+            const windowLimit = total > 35 ? 24 : 9999;
             const recentUrls = [];
             const isRecentUrl = (u) => recentUrls.includes(u);
             const pushUsedUrl = (u) => {
@@ -2059,6 +2076,7 @@ ${styleListSummary}
                 : (['religion', 'business_tech'].includes(project.genre) ? 'gold_sparkle' : 'frost_shimmer')));
             const backupPool = DEFAULT_PROJECT.scenes.map(s => s.mediaUrl);
             const verifiedPool = [];
+            const hasAiArtKey = Boolean(getKeyByProvider('huggingface') || getKeyByProvider('together') || getKeyByProvider('openai'));
 
             for (let i = 0; i < total; i++) {
                 const sc = project.scenes[i];
@@ -2100,12 +2118,11 @@ ${styleListSummary}
                     const badFrom = !sc.voxData.fromLabel || sc.voxData.fromLabel === 'نقطة البداية';
                     const badTo = !sc.voxData.toLabel || sc.voxData.toLabel === 'الهدف';
                     if (badFrom || badTo) {
-                        const isArabHist = /(بغداد|الخوارزمي|الأندلس|عباس|تاريخ|دمشق|القاهرة|المغرب|قرطبة)/.test(project.title + ' ' + (sc.narration || ''));
-                        sc.voxData.fromLabel = badFrom ? (isArabHist ? 'بغداد' : (sc.sceneTitle || project.title).split(/\s+/).slice(0, 2).join(' ')) : sc.voxData.fromLabel;
-                        sc.voxData.toLabel = badTo ? (isArabHist ? 'قرطبة وأوروبا' : 'العالم') : sc.voxData.toLabel;
+                        sc.voxData.fromLabel = badFrom ? (sc.sceneTitle || project.title).split(/\s+/).slice(0, 2).join(' ') : sc.voxData.fromLabel;
+                        sc.voxData.toLabel = badTo ? (project.title.split(/\s+/).slice(0, 2).join(' ') || 'المنطقة') : sc.voxData.toLabel;
                     }
-                    sc.voxData.fromCoords = sc.voxData.fromCoords || [33.3, 44.4];
-                    sc.voxData.toCoords = sc.voxData.toCoords || [37.9, -4.7];
+                    if (!Array.isArray(sc.voxData.fromCoords) || sc.voxData.fromCoords.length !== 2) sc.voxData.fromCoords = [32.4, 53.7];
+                    if (!Array.isArray(sc.voxData.toCoords) || sc.voxData.toCoords.length !== 2) sc.voxData.toCoords = [35.69, 51.39];
                     report.fixedVox++;
                 }
                 if (sc.visualType === 'vox_split' && (!sc.voxData.leftLabel || !sc.voxData.rightLabel)) {
@@ -2113,7 +2130,12 @@ ${styleListSummary}
                 }
 
                 const isHistorical = ['religion', 'documentary', 'stories', 'occult'].includes(project.genre)
-                    || /(تاريخ|بغداد|خوارزمي|حضارة|قرن|عصر|أندلس|فرعون|خليفة|حرب|قديم)/.test(project.title + ' ' + (sc.narration || ''));
+                    || /(تاريخ|بغداد|خوارزمي|إيران|فارس|حضارة|قرن|عصر|أندلس|فرعون|خليفة|حرب|قديم)/.test(project.title + ' ' + (sc.narration || ''));
+
+                if (sc.mediaUrl && String(sc.mediaUrl).includes('pollinations.ai')) {
+                    sc.mediaUrl = '';
+                    report.repairedAssets++;
+                }
 
                 let needsReplacement = !sc.mediaUrl || isRecentUrl(sc.mediaUrl);
                 if (sc.mediaUrl && isRecentUrl(sc.mediaUrl)) report.deduped++;
@@ -2127,31 +2149,19 @@ ${styleListSummary}
                     const styleDesc = youtubeStyleDna?.visualDirection || project.opuscarStyle;
                     let picked = null;
 
-                    // إذا حدد المخرج أن اللقطة تتطلب رسماً تاريخياً/تخييلياً أو لم يجد في الأرشيف، يولّد لوحة مخصصة فوراً!
-                    const preferAiFirst = sc.visualMode === 'ai_art' || (isHistorical && i < 6 && i % 2 === 0);
-                    if (!preferAiFirst) {
-                        const qList = [sc.archiveQuery, sc.fallbackQuery].filter(Boolean);
+                    if (hasAiArtKey && sc.visualMode === 'ai_art' && (sc.imagePrompt || sc.archiveQuery)) {
+                        const aiArt = await generateHighResImageWithFallback(sc.imagePrompt || sc.archiveQuery, styleDesc);
+                        if (aiArt) picked = { url: aiArt, type: 'image' };
+                    }
+
+                    if (!picked) {
+                        const qList = [sc.wikiPageQuery, sc.archiveQuery, sc.fallbackQuery, sc.sceneTitle, project.title].filter(Boolean);
                         for (const q of qList) {
-                            const cands = await fetchMediaCandidates(q, sc.visualType === 'video_clip', { isHistorical, mustAvoid: sc.mustAvoid || [] });
+                            const cands = await fetchMediaCandidates(q, sc.visualType === 'video_clip', { isHistorical, mustAvoid: sc.mustAvoid || [], wikiPageQuery: sc.wikiPageQuery || q });
                             for (const c of cands) {
                                 if (!isRecentUrl(c.url) && await preloadAndCheckMedia(c.url, c.type)) { picked = c; break; }
                             }
                             if (picked) break;
-                        }
-                    }
-
-                    // توليد صورة مخصصة مطابقة للجملة بالضبط عند عدم وجود لقطة أرشيفية ملائمة (أو عند طلب ai_art)
-                    if (!picked && (sc.imagePrompt || sc.archiveQuery || sc.sceneTitle)) {
-                        const artPrompt = sc.imagePrompt || `${sc.archiveQuery || sc.sceneTitle}, authentic era-accurate historical documentary scene matching: ${sc.narration || ''}`;
-                        const aiArt = await generateHighResImageWithFallback(artPrompt, styleDesc);
-                        if (aiArt) picked = { url: aiArt, type: 'image' };
-                    }
-
-                    // محاولة أرشيف احتياطية إن تعذر التوليد
-                    if (!picked) {
-                        const cands = await fetchMediaCandidates(sc.fallbackQuery || sc.archiveQuery || project.title, false, { isHistorical, mustAvoid: sc.mustAvoid || [] });
-                        for (const c of cands) {
-                            if (!isRecentUrl(c.url) && await preloadAndCheckMedia(c.url, c.type)) { picked = c; break; }
                         }
                     }
 
@@ -2174,7 +2184,6 @@ ${styleListSummary}
                 }
                 if (sc.mediaUrl) pushUsedUrl(sc.mediaUrl);
             }
-            // حارس منع تحول الفيديو كله إلى خرائط: حد أقصى 2 خريطة متتالية وبحد أقصى 45% من المشاهد
             let consecMaps = 0;
             project.scenes.forEach((sc, idx) => {
                 if (sc.visualType === 'vox_map') {
@@ -2340,7 +2349,7 @@ ${styleListSummary}
             const frameworkKey = document.getElementById('storyFrameworkSelect')?.value || 'auto';
             const frameworkRule = STORYTELLING_FRAMEWORKS[frameworkKey] || STORYTELLING_FRAMEWORKS.auto;
             const mins = Math.max(1, Math.min(30, parseInt(document.getElementById('durationSelect').value, 10) || 3));
-            const targetScenes = Math.max(10, Math.min(260, mins * 10));
+            const targetScenes = Math.max(7, Math.min(180, mins * 5)); // ~12 ثانية / 24-30 كلمة عربية مترابطة لكل مشهد (10د ≈ 50 مشهد ≈ 1250 كلمة)
             const multiSpeaker = document.getElementById('multiSpeakerToggle')?.checked || false;
 
             const activeVisualLabel = youtubeStyleDna
@@ -2393,23 +2402,24 @@ ${styleListSummary}
                     logDirectorDecision(`فصل الوكلاء: الكتابة (${writerPool || 'غير متوفر'}) | الصوت والمشاهدة (${gemCount} Gemini 3.8)`);
 
                     const planPrompt = `أنت "الوكيل المدير التنفيذي" (Executive Orchestrator). صمّم خطة إخراج وتوقيت لفيلم حول "${topic}" (${genreMeta.label} | ${mins} د | الأسلوب: ${activeVisualLabel}).
+${youtubeStyleDna ? `مرجع اليوتيوب الإلزامي: ${youtubeStyleDna.visualDirection || ''} | الهوك: ${youtubeStyleDna.hookFormula || ''}` : ''}
 أعد JSON فقط:
-{"pacingStrategy":{"hookMaxSec":2.8,"bodySpeed":"fast|balanced|cinematic","hookTransitionSec":0.28,"bodyTransitionSec":0.42},"engineMix":{"threeStagePct":20,"brushPct":15,"dataMapPct":30,"cinematicPct":35},"visualIdentity":{"styleName":"...","backdropMode":"fullbleed_no_bg|styled_backdrop","mapMode":"orthographic_3d|regional_zoom|tactical_radar","palette":{"bg":"#070b14","bg2":"#02040a","fg":"#f8fafc","accent":"#fbbf24","accentText":"#090d16","grid":"rgba(255,255,255,0.05)","frame":"#1e293b","rough":false}},"directorBrief":"توجيه موجز للكاتب والمونتير","voiceRoleBrief":"English voice acting direction"}`;
+{"pacingStrategy":{"hookMaxSec":4.5,"bodySpeed":"fast|balanced|cinematic","hookTransitionSec":0.30,"bodyTransitionSec":0.45},"engineMix":{"threeStagePct":20,"brushPct":15,"dataMapPct":35,"cinematicPct":30},"visualIdentity":{"styleName":"...","backdropMode":"fullbleed_no_bg|styled_backdrop","mapMode":"orthographic_3d|regional_zoom|tactical_radar","palette":{"bg":"#070b14","bg2":"#02040a","fg":"#f8fafc","accent":"#fbbf24","accentText":"#090d16","grid":"rgba(255,255,255,0.05)","frame":"#1e293b","rough":false}},"directorBrief":"توجيه موجز للكاتب والمونتير","voiceRoleBrief":"English voice acting direction"}`;
                     try {
                         const pRes = await callAiJsonWithAutoFallback(planPrompt, { maxTokens: 1600 });
                         execPlan = pRes.parsed;
                     } catch (err) {
                         if (!getAvailableTextCalls().length) throw err;
                         execPlan = {
-                            pacingStrategy: { hookMaxSec: 2.8, bodySpeed: 'balanced', hookTransitionSec: 0.28, bodyTransitionSec: 0.42 },
-                            engineMix: { threeStagePct: 20, brushPct: 15, dataMapPct: 30, cinematicPct: 35 },
-                            directorBrief: 'إيقاع متصاعد وتنويع بصري متوازن بدون تراكب.',
+                            pacingStrategy: { hookMaxSec: 4.5, bodySpeed: 'balanced', hookTransitionSec: 0.30, bodyTransitionSec: 0.45 },
+                            engineMix: { threeStagePct: 20, brushPct: 15, dataMapPct: 35, cinematicPct: 30 },
+                            directorBrief: 'إيقاع متصاعد وتنويع بصري متوازن مع خرائط دقيقة وصور أرشيفية حقيقية.',
                             voiceRoleBrief: genreMeta.voiceNote
                         };
                     }
                     const mix = execPlan.engineMix || {};
                     const pace = execPlan.pacingStrategy || {};
-                    document.getElementById('directorPlanSummary').textContent = `${pace.bodySpeed || 'متزن'} | 3D:${mix.threeStagePct || 20}% · Maps:${mix.dataMapPct || 30}%`;
+                    document.getElementById('directorPlanSummary').textContent = `${pace.bodySpeed || 'متزن'} | 3D:${mix.threeStagePct || 20}% · Maps:${mix.dataMapPct || 35}%`;
                     logDirectorDecision(`خطة المدير: ${execPlan.directorBrief || 'جاهزة'}`);
                     setAgentCard('exec', 'أقرّ الخطة ✓', 'done');
                 }
@@ -2426,69 +2436,63 @@ ${styleListSummary}
 1. ${ARABIC_STORYTELLING_MASTERY}
 2. إطار السرد المطلوب: ${frameworkRule}
 3. حقائق موثقة للاستناد إليها:\n${wikiFacts || 'استند لحقائق موثقة ودقيقة في هذا المجال.'}
-4. استعمل صيغ الهوك القوية: ${HOOK_FORMULAS_21.slice(0, 4).join(' | ')} — ابدأ الجملة الأولى بصدمة تثبت العنوان فوراً بدون أي تحية.
-5. القفل البصري لكل مشهد في المصفوفة "scenes":
-   - مكان/حركة/مسار ← "vox_map" (حدد مدن/دول حقيقية + fromCoords + toCoords + mapPattern من الـ 13)
-   - رقم/مقارنة ← "vox_chart" (مع voxData.bars)
-   - مقارنة شيئين ← "vox_split" | تسلسل زمني ← "vox_timeline" | صدمة/اقتباس ← "kinetic_quote" أو "vox_highlight"
-   - مشهد تخييلي/مكاني ← "cinematic" أو "three_stage" أو "brush_sketch" أو "video_clip"
-   - اكتب لكل مشهد "archiveQuery" و"imagePrompt" بالإنجليزية متوافقين مع الحقبة الزمنية، وحدد "shotRecipe"، "pixelFx"، "transitionType"، "foleyType".
+4. استعمل صيغ الهوك القوية: ${HOOK_FORMULAS_21.slice(0, 4).join(' | ')} — ابدأ فوراً بصدمة/مفارقة تثبت العنوان بدون أي تحية.
+5. القفل البصري وطول كل مشهد في "scenes":
+   - اكتب في كل مشهد "narration" غنية ومتدفقة من **20 إلى 30 كلمة عربية** (~10–14 ثانية إلقاء طبيعي) مرتبطة سببياً بالمشهد السابق واللاحق ("لكن / لذلك")!
+   - مكان/معركة/جغرافيا ← "vox_map" مع وضع إحداثيات حقيقية دقيقة [lat, lon] داخل "voxData.fromCoords" و"voxData.toCoords" (مثلاً إيران [32.4, 53.7]، برسيبوليس [29.93, 52.89]، شوشان [32.19, 48.25]) و"fromLabel" و"toLabel" و"mapPattern" من الـ 13.
+   - أرقام/مقارنة ← "vox_chart" (مع voxData.bars) | مقارنة شيئين ← "vox_split" | تسلسل زمني ← "vox_timeline" | صدمة ← "kinetic_quote" أو "vox_highlight" | مشهد درامي/مكاني ← "cinematic" أو "three_stage" أو "brush_sketch".
+   - إلزامي لكل مشهد كتابة:
+     * "wikiPageQuery": اسم المقالة الدقيقة في ويكيبيديا الإنجليزية (2-3 كلمات فقط مثل: "Persepolis", "Elam", "Cyrus the Great", "Safavid Iran", "Qajar Iran") لجلب صورتها الحقيقية مباشرة!
+     * "archiveQuery": كلمات بحث إنجليزية دقيقة لويكيميديا كومنز (3-5 كلمات بدون رموز).
+     * "imagePrompt": وصف سينمائي متوافق مع الحقبة بدون نصوص.
+     * "shotRecipe"، "pixelFx"، "transitionType"، "foleyType".
 6. ${DIRECTOR_MAP_SYSTEM_BIBLE}${execPlan ? `\nتوجيه المدير: ${execPlan.directorBrief}` : ''}`;
 
-                // 4) وكيل كتابة السكربت الكامل (يكتب السكربت كاملاً بطلب واحد متكامل ليرسل دفعة واحدة إلى Gemini 3.8 TTS)
+                // 4) وكيل كتابة السكربت الكامل بالمدة المطلوبة فعلياً (بدون توقف مبكر عند 12 جملة!)
                 let metaHead = null;
                 let rawScenes = [];
                 let lastProvider = 'Writer';
 
-                if (useExecutiveDirector) setAgentCard('script', 'يكتب السكربت كاملاً...', 'running');
-                if (mins <= 10) {
-                    setP(16, `1/5 كاتب السكربتات يصيغ السكربت الكامل (${mins} د · ${targetScenes} مشهد) بطلب واحد...`);
+                if (useExecutiveDirector) setAgentCard('script', 'يكتب السكربت الكامل...', 'running');
+                if (mins <= 3) {
+                    setP(16, `1/5 كاتب السكربت يصيغ السكربت الكامل (${mins} د · ${targetScenes} مشهد)...`);
                     const fullPrompt = `أنت كاتب سكربتات يوتيوب محترف ومخرج سردي في مجال (${genreMeta.label}) بأسلوب (${activeVisualLabel}).
-الموضوع: "${topic}" | المدة المطلوبة: ${mins} دقيقة (~${targetScenes} مقطع/مشهد بصري).${ytDnaInstruction}${dialogueNote}
-
-المطلوب كتابة **السكربت الكامل المتدفق من البداية للنهاية** (في حقل "fullScript") أولاً كنص عربي مشوّق يجعل المتفرج يكمل القصة حتى الثانية الأخيرة، ثم تقسيم جمل هذا السكربت نفسها بدقة داخل مصفوفة "scenes" لتتحول إلى لقطات متزامنة مع الصوت!
+الموضوع: "${topic}" | المدة المطلوبة: ${mins} دقيقة (~${targetScenes} مشهد، كل مشهد 20–28 كلمة مترابطة).${ytDnaInstruction}${dialogueNote}
 
 ${directorRules}
 ${isAutoFreeStyle ? `صمّم أيضاً "visualIdentity": {"styleName":"...","backdropMode":"fullbleed_no_bg|styled_backdrop","mapMode":"orthographic_3d|regional_zoom|tactical_radar","palette":{"bg":"#070b14","bg2":"#02040a","fg":"#f8fafc","accent":"#fbbf24","accentText":"#090d16","grid":"rgba(255,255,255,0.06)","frame":"#1e293b","rough":false}}.` : ''}
 
 أضف "voiceInstruction" بالإنجليزية، و"geminiVoice" من ("Charon","Fenrir","Puck","Kore","Aoede") و"secondVoice"، و"seoSummary" و"seoTags" (5 هاشتاجات).
 أعد JSON فقط:
-{"title":"...","fullScript":"النص العربي الكامل المترابط من الهوك للخاتمة","seoSummary":"...","seoTags":["#..."],"voiceInstruction":"...","geminiVoice":"Charon","secondVoice":"Puck",${isAutoFreeStyle ? '"visualIdentity":{"styleName":"...","backdropMode":"fullbleed_no_bg","mapMode":"orthographic_3d","palette":{"bg":"#070b14","bg2":"#02040a","fg":"#f8fafc","accent":"#fbbf24","accentText":"#090d16","grid":"rgba(255,255,255,0.06)","frame":"#1e293b","rough":false}},' : ''}"scenes":[{"sceneTitle":"...","speaker":"Narrator|Character","narration":"جملة من السكربت الكامل","visualType":"...","visualMode":"ai_art|archive|stock","shotRecipe":"...","pixelFx":"...","transitionType":"...","foleyType":"...","archiveQuery":"Specific English keywords","fallbackQuery":"Alt English keywords","imagePrompt":"Detailed cinematic English prompt, no text","voxData":{}}]}`;
+{"title":"...","seoSummary":"...","seoTags":["#..."],"voiceInstruction":"...","geminiVoice":"Charon","secondVoice":"Puck",${isAutoFreeStyle ? '"visualIdentity":{"styleName":"...","backdropMode":"fullbleed_no_bg","mapMode":"orthographic_3d","palette":{"bg":"#070b14","bg2":"#02040a","fg":"#f8fafc","accent":"#fbbf24","accentText":"#090d16","grid":"rgba(255,255,255,0.06)","frame":"#1e293b","rough":false}},' : ''}"scenes":[{"sceneTitle":"...","speaker":"Narrator|Character","narration":"20-28 كلمة عربية متصلة بالمشهد السابق واللاحق","visualType":"...","visualMode":"archive|stock|ai_art","shotRecipe":"...","pixelFx":"...","transitionType":"...","foleyType":"...","wikiPageQuery":"Exact English Wikipedia Article Title","archiveQuery":"Specific English keywords","fallbackQuery":"Alt English keywords","imagePrompt":"Detailed cinematic English prompt, no text","voxData":{}}]}`;
 
                     const res = await callAiJsonWithAutoFallback(fullPrompt, { maxTokens: 8000, onStatus: (m) => setP(22, m) });
                     metaHead = res.parsed;
                     lastProvider = res.provider;
                     rawScenes = Array.isArray(res.parsed.scenes) ? res.parsed.scenes : [];
-                    if (!rawScenes.length && res.parsed.fullScript) {
-                        rawScenes = res.parsed.fullScript.split(/(?<=[.!؟])\s+/).filter(Boolean).map((line, idx) => ({
-                            sceneTitle: `مشهد ${idx + 1}`,
-                            narration: line,
-                            visualType: idx === 0 ? 'vox_highlight' : 'cinematic',
-                            archiveQuery: topic,
-                            imagePrompt: `${topic}, documentary cinematic frame`
-                        }));
-                    }
                 } else {
-                    const numActs = Math.min(4, Math.ceil(mins / 8));
-                    setP(14, `1/5 كاتب السكربت يبني هيكل الملحمة (${mins} د · ${numActs} فصول)...`);
-                    const outlinePrompt = `أنت Showrunner محترف تبني هيكل فيلم ${mins} دقيقة حول "${topic}" (${genreMeta.label}).${ytDnaInstruction}
-قسّمه إلى ${numActs} فصول كبرى مترابطة، كل فصل ينتهي بجسر تشويق. أعد JSON فقط:
-{"title":"...","seoSummary":"...","seoTags":["#..."],"voiceInstruction":"...","geminiVoice":"Charon","secondVoice":"Puck","chapters":[{"chapterTitle":"...","focus":"...","cliffhanger":"..."}]}`;
-                    const outRes = await callAiJsonWithAutoFallback(outlinePrompt, { maxTokens: 3000 });
+                    const numActs = Math.max(2, Math.min(8, Math.ceil(mins / 2.5)));
+                    setP(14, `1/5 تخطيط السكربت الكامل لفيلم ${mins} دقيقة (${numActs} فصول متكاملة)...`);
+                    const outlinePrompt = `أنت Showrunner محترف تبني هيكل فيلم وثائقي/قصصي مدته ${mins} دقيقة بالضبط حول "${topic}" (${genreMeta.label}).${ytDnaInstruction}
+قسّم الموضوع زمنياً وموضوعياً إلى ${numActs} فصول كبرى متصاعدة التشويق، بحيث يغطي كل فصل حقبة أو محوراً واضحاً دون تكرار، مع إجمالي ~${targetScenes} مشهد.
+أعد JSON فقط:
+{"title":"...","seoSummary":"...","seoTags":["#..."],"voiceInstruction":"...","geminiVoice":"Charon","secondVoice":"Puck","chapters":[{"chapterTitle":"...","focus":"الأحداث والأماكن المحددة في هذا الفصل","cliffhanger":"نقطة التشويق للانتقال للفصل التالي"}]}`;
+                    const outRes = await callAiJsonWithAutoFallback(outlinePrompt, { maxTokens: 3200 });
                     metaHead = outRes.parsed;
                     lastProvider = outRes.provider;
                     const chapters = Array.isArray(metaHead.chapters) && metaHead.chapters.length ? metaHead.chapters : Array.from({ length: numActs }, (_, k) => ({ chapterTitle: `الفصل ${k + 1}`, focus: topic, cliffhanger: 'تصعيد قادم' }));
-                    const scenesPerAct = Math.max(20, Math.min(45, Math.round(targetScenes / chapters.length)));
+                    const scenesPerAct = Math.max(10, Math.min(18, Math.round(targetScenes / chapters.length)));
 
                     let prevClosing = '';
                     for (let cIdx = 0; cIdx < chapters.length; cIdx++) {
                         const ch = chapters[cIdx];
-                        setP(18 + Math.round(((cIdx + 1) / chapters.length) * 20), `1/5 كتابة الفصل الكامل ${cIdx + 1}/${chapters.length}...`);
-                        const actPrompt = `اكتب الفصل ${cIdx + 1}/${chapters.length} كاملاً لفيلم "${metaHead.title || topic}": "${ch.chapterTitle}" (${ch.focus}).
-${prevClosing ? `أكمل مباشرة من: "${prevClosing}"` : 'ابدأ بهوك افتتاحي صادم فوراً!'}
-التشويق للقادم: ${ch.cliffhanger}. المطلوب ~${scenesPerAct} جملة مترابطة في "scenes".${dialogueNote}
+                        setP(16 + Math.round(((cIdx + 1) / chapters.length) * 24), `1/5 صياغة الفصل ${cIdx + 1}/${chapters.length} (${ch.chapterTitle})...`);
+                        const actPrompt = `اكتب الفصل ${cIdx + 1}/${chapters.length} من فيلم "${metaHead.title || topic}": "${ch.chapterTitle}" (${ch.focus}).
+${prevClosing ? `أكمل السرد فوراً وبسلاسة من آخر جملة: "${prevClosing}"` : 'هذا هو الفصل الأول: ابدأ بهوك افتتاحي صادم يثبت العنوان في أول ثانيتين بدون تحية!'}
+التشويق نحو الفصل القادم: ${ch.cliffhanger}.
+إلزامي توليد **${scenesPerAct} مشاهد كاملة** في مصفوفة "scenes" (كل مشهد 20–30 كلمة عربية متماسكة، وليس سطراً قصيراً!).${dialogueNote}
 ${directorRules}
-أعد JSON فقط: {"scenes":[{"sceneTitle":"...","speaker":"Narrator|Character","narration":"...","visualType":"...","visualMode":"ai_art|archive|stock","shotRecipe":"...","pixelFx":"...","transitionType":"...","foleyType":"...","archiveQuery":"English keywords","fallbackQuery":"Alt English","imagePrompt":"Detailed English prompt, no text","voxData":{}}]}`;
+أعد JSON فقط: {"scenes":[{"sceneTitle":"...","speaker":"Narrator|Character","narration":"20-30 كلمة عربية مشوقة","visualType":"...","visualMode":"archive|stock|ai_art","shotRecipe":"...","pixelFx":"...","transitionType":"...","foleyType":"...","wikiPageQuery":"Exact English Wikipedia Title","archiveQuery":"Specific English Wikimedia query","fallbackQuery":"Alt English query","imagePrompt":"Detailed English prompt, no text","voxData":{}}]}`;
                         const actRes = await callAiJsonWithAutoFallback(actPrompt, { maxTokens: 8000 });
                         const actScenes = Array.isArray(actRes.parsed?.scenes) ? actRes.parsed.scenes : [];
                         if (actScenes.length) {
@@ -2502,10 +2506,11 @@ ${directorRules}
                 if (!scenes.length) throw new Error('لم يولد الكاتب أي مشاهد');
 
                 const qaReport = localRetentionGuard(scenes);
-                const fullScriptText = metaHead?.fullScript || scenes.map(s => s.narration).filter(Boolean).join('\n');
+                const fullScriptText = scenes.map(s => s.narration).filter(Boolean).join('\n\n');
+                const wordCount = fullScriptText.split(/\s+/).filter(Boolean).length;
                 if (useExecutiveDirector) {
-                    setAgentCard('script', `سكربت كامل (${scenes.length}) ✓`, 'done');
-                    logDirectorDecision(`الكاتب (${lastProvider}) أنتج السكربت كاملاً (${scenes.length} مشهد | احتفاظ ${qaReport.score}%).`);
+                    setAgentCard('script', `${scenes.length} مشهد (${wordCount} كلمة) ✓`, 'done');
+                    logDirectorDecision(`الكاتب (${lastProvider}) أنتج السكربت الكامل: ${scenes.length} مشهد (${wordCount} كلمة | احتفاظ ${qaReport.score}%).`);
                 }
 
                 const freeVisual = isAutoFreeStyle ? (execPlan?.visualIdentity || metaHead?.visualIdentity || pickFallbackVisualIdentity(topic, genre)) : null;
@@ -2534,45 +2539,43 @@ ${directorRules}
                 await refreshProjectsBadge();
 
                 if (useExecutiveDirector && execPlan) {
-                    const hookTr = Number(youtubeStyleDna?.editingPace?.hookTransitionSec || execPlan.pacingStrategy?.hookTransitionSec) || 0.28;
-                    const bodyTr = Number(youtubeStyleDna?.editingPace?.bodyTransitionSec || execPlan.pacingStrategy?.bodyTransitionSec) || 0.42;
+                    const hookTr = Number(youtubeStyleDna?.editingPace?.hookTransitionSec || execPlan.pacingStrategy?.hookTransitionSec) || 0.30;
+                    const bodyTr = Number(youtubeStyleDna?.editingPace?.bodyTransitionSec || execPlan.pacingStrategy?.bodyTransitionSec) || 0.45;
                     scenes.forEach((sc, idx) => {
                         const isHook = idx < 2;
                         const isClimax = idx >= Math.floor(scenes.length * 0.72) && idx < Math.floor(scenes.length * 0.9);
                         sc.transitionDurationSec = isHook ? hookTr : (isClimax ? 0.55 : bodyTr);
-                        if (isHook && idx === 1 && sc.visualType === 'cinematic') sc.visualType = 'three_stage';
                     });
                 }
 
                 // 5) وكيل الصوت المستقل: إرسال السكربت الكامل بطلب واحد حصراً إلى gemini-3.8-flash-tts
                 if (useExecutiveDirector) setAgentCard('voice', 'Gemini 3.8 يقرأ...', 'running');
-                setP(45, `2/5 إرسال السكربت كاملاً بطلب واحد إلى Gemini 3.8 TTS...`);
+                setP(45, `2/5 إرسال السكربت كاملاً (${wordCount} كلمة) إلى Gemini 3.8 TTS...`);
                 masterAudioBuffer = await synthesizeWholeScriptOneShot(scenes, projectDraft, (b, tot) => {
                     setP(45 + Math.round((b / tot) * 16), `2/5 توليد الصوت الكامل عبر Gemini 3.8 (${b}/${tot})...`);
                 });
                 alignScenesToMasterAudio(masterAudioBuffer, scenes);
                 if (useExecutiveDirector) {
                     setAgentCard('voice', masterAudioBuffer ? `${Math.round(masterAudioBuffer.duration)}ث (3.8) ✓` : 'فشل TTS', masterAudioBuffer ? 'done' : 'idle');
-                    logDirectorDecision(masterAudioBuffer ? `Gemini 3.8 TTS أنتج الصوت كاملاً بطلب موحّد (${Math.round(masterAudioBuffer.duration)}ث).` : `تنبيه صوتي: ${lastTtsErrorMsg || 'تأكد من مفتاح Gemini'}`);
+                    logDirectorDecision(masterAudioBuffer ? `Gemini 3.8 TTS أنتج الصوت كاملاً (${Math.round(masterAudioBuffer.duration)}ث).` : `تنبيه صوتي: ${lastTtsErrorMsg || 'تأكد من مفتاح Gemini'}`);
                 }
                 if (masterAudioBuffer) await idbSaveAudio(projectDraft.id, masterAudioBuffer);
                 await idbPutProject(projectDraft);
 
-                // 6) وكيل الصور والوسائط المستقل (HF FLUX + Pixabay + Pexels + Wikimedia + Pollinations)
-                if (useExecutiveDirector) setAgentCard('visual', 'يجهز اللقطات...', 'running');
-                setP(64, `3/5 وكيل الصور يجهز لقطات ${scenes.length} مشهد...`);
+                // 6) وكيل الصور الحقيقية واللقطات (Wikipedia PageImages + Wikimedia 960px + Openverse + HF FLUX/Pixabay/Pexels)
+                if (useExecutiveDirector) setAgentCard('visual', 'يجلب الصور...', 'running');
+                setP(64, `3/5 وكيل الصور يجهز لقطات حقيقية لـ ${scenes.length} مشهد...`);
                 const windowLen = scenes.length > 35 ? 24 : 9999;
                 const recentAdded = [];
                 const isHistProd = ['religion', 'documentary', 'stories', 'occult'].includes(genre)
-                    || /(تاريخ|بغداد|خوارزمي|حضارة|قرن|عصر|أندلس|فرعون|خليفة|حرب|قديم)/.test(topic);
-                const artisticGenres = ['occult', 'scifi_fantasy', 'comedy', 'stories'];
-                const aiStep = Math.max(4, Math.ceil(scenes.length / 10));
+                    || /(تاريخ|بغداد|خوارزمي|إيران|فارس|حضارة|قرن|عصر|أندلس|فرعون|خليفة|حرب|قديم)/.test(topic);
+                const hasAiArtKey = Boolean(getKeyByProvider('huggingface') || getKeyByProvider('together') || getKeyByProvider('openai'));
                 for (let i = 0; i < scenes.length; i++) {
-                    if (i % 3 === 0 || i === scenes.length - 1) {
-                        setP(64 + Math.round((i / scenes.length) * 18), `3/5 تجهيز اللقطة ${i + 1} من ${scenes.length}...`);
+                    if (i % 2 === 0 || i === scenes.length - 1) {
+                        setP(64 + Math.round((i / scenes.length) * 18), `3/5 جلب وتجهيز لقطة المشهد ${i + 1} من ${scenes.length}...`);
                     }
                     const sc = scenes[i];
-                    if (sc.visualMode === 'ai_art' || (artisticGenres.includes(genre) && i % aiStep === 0)) {
+                    if (hasAiArtKey && sc.visualMode === 'ai_art') {
                         const art = await generateHighResImageWithFallback(sc.imagePrompt || sc.archiveQuery || sc.sceneTitle, activeVisualLabel);
                         if (art) {
                             sc.mediaUrl = art; sc.mediaType = 'image';
@@ -2581,8 +2584,13 @@ ${directorRules}
                             continue;
                         }
                     }
-                    const cands = await fetchMediaCandidates(sc.archiveQuery || topic, sc.visualType === 'video_clip', { isHistorical: isHistProd, mustAvoid: sc.mustAvoid || [] });
-                    const unique = cands.find(c => !recentAdded.includes(c.url));
+                    const queries = [sc.wikiPageQuery, sc.archiveQuery, sc.fallbackQuery, topic].filter(Boolean);
+                    let unique = null;
+                    for (const q of queries) {
+                        const cands = await fetchMediaCandidates(q, sc.visualType === 'video_clip', { isHistorical: isHistProd, mustAvoid: sc.mustAvoid || [], wikiPageQuery: sc.wikiPageQuery || q });
+                        unique = cands.find(c => !recentAdded.includes(c.url));
+                        if (unique) break;
+                    }
                     if (unique) {
                         sc.mediaUrl = unique.url; sc.mediaType = unique.type;
                         recentAdded.push(unique.url); if (recentAdded.length > windowLen) recentAdded.shift();
@@ -2636,11 +2644,22 @@ ${directorRules}
 
         // ---------- 9. محرك الرسم الموحّد بدون تراكب: Three.js 3D + PixelFX + ShotCraft + p5.brush + Rough.js + 3D Globe ----------
         function getOrLoadImage(url) {
-            if (!url) return null;
+            if (!url || String(url).includes('pollinations.ai')) return null;
             if (imageCache.has(url)) return imageCache.get(url);
-            const img = new Image(); img.crossOrigin = 'anonymous';
+            const img = new Image();
+            if (!url.startsWith('data:')) img.crossOrigin = 'anonymous';
             img.onload = () => { if (!isPlaying) renderSceneFrame(currentSceneIdx, 0.35); };
-            img.src = url; imageCache.set(url, img); return img;
+            img.onerror = () => {
+                // إذا رفض السيرفر ترويسة CORS، نعيد التحميل بدون crossOrigin للمعاينة الآمنة على الشاشة
+                if (img.crossOrigin) {
+                    img.crossOrigin = null;
+                    img.removeAttribute('crossorigin');
+                    img.src = url;
+                }
+            };
+            img.src = url;
+            imageCache.set(url, img);
+            return img;
         }
         function getOrLoadVideo(url) {
             if (!url) return null;
@@ -3112,56 +3131,69 @@ ${directorRules}
             }
         }
 
+        // مسرح وثائقي 2.5D عميق (يعرض الصورة الحقيقية للموضوع بإضاءة سينمائية وحركة عمق ثلاثية الأبعاد — بدون مكعبات عشوائية!)
         function renderThreeStage(W, H, progress, theme, energy, img, stageTop, stageBottom, titleText) {
-            const eng = ensureThreeEngine(W, H);
             const stageH = stageBottom - stageTop;
-            const centerY = stageTop + stageH * 0.48;
-            if (eng) {
-                try {
-                    const accentHex = parseInt((theme.accent || '#fbbf24').replace('#', ''), 16) || 0xfbbf24;
-                    eng.coreMesh.material.color.setHex(accentHex);
-                    eng.point.color.setHex(accentHex);
-                    eng.coreMesh.rotation.y = progress * Math.PI * 1.4;
-                    eng.coreMesh.rotation.x = progress * 0.7;
-                    const pulse = 1 + energy * 0.25;
-                    eng.coreMesh.scale.set(pulse, pulse, pulse);
-                    eng.ringMesh.rotation.z = progress * Math.PI;
-                    eng.orbitGroup.rotation.y = -progress * Math.PI * 0.9;
-                    eng.camera.position.x = Math.sin(progress * Math.PI * 0.8) * 1.1;
-                    eng.camera.position.y = 0.8 + Math.cos(progress * Math.PI) * 0.35;
-                    eng.camera.lookAt(0, 0, 0);
-                    eng.renderer.render(eng.scene, eng.camera);
-                    ctx.save();
-                    ctx.beginPath(); ctx.rect(0, stageTop, W, stageH); ctx.clip();
-                    if (img?.complete && img.naturalWidth) {
-                        ctx.globalAlpha = 0.24; drawCover(img, 0, stageTop, W, stageH, 1.05 + progress * 0.05); ctx.globalAlpha = 1;
-                    }
-                    ctx.drawImage(eng.off, 0, 0, W, H);
-                    ctx.restore();
-                } catch {}
-            } else {
-                // بديل هندسي ثلاثي الأبعاد بالـ 2D إذا كان WebGL غير متاح
+            const e = MotionPhysics.easeOutExpo(Math.min(1, progress * 1.15));
+            ctx.save();
+            ctx.beginPath(); ctx.rect(0, stageTop, W, stageH); ctx.clip();
+
+            // 1) خلفية داكنة ضبابية من نفس الصورة + إضاءة موضعية درامية
+            if (img?.complete && img.naturalWidth > 0) {
                 ctx.save();
-                ctx.strokeStyle = theme.accent; ctx.lineWidth = 2;
-                const rad = Math.min(W, stageH) * 0.28;
-                ctx.translate(W / 2, centerY);
-                ctx.rotate(progress * 0.8);
-                ctx.strokeRect(-rad, -rad * 0.65, rad * 2, rad * 1.3);
-                ctx.rotate(0.45);
-                ctx.strokeRect(-rad * 0.75, -rad * 0.75, rad * 1.5, rad * 1.5);
+                ctx.globalAlpha = 0.34;
+                ctx.filter = 'blur(12px) brightness(0.65)';
+                drawCover(img, 0, stageTop, W, stageH, 1.16 - progress * 0.04);
                 ctx.restore();
             }
+            const spot = ctx.createRadialGradient(W * 0.5, stageTop + stageH * 0.45, 20, W * 0.5, stageTop + stageH * 0.48, Math.max(W, stageH) * 0.65);
+            spot.addColorStop(0, `${theme.accent || '#fbbf24'}28`);
+            spot.addColorStop(1, 'rgba(3,6,14,0.88)');
+            ctx.fillStyle = spot; ctx.fillRect(0, stageTop, W, stageH);
 
-            // بطاقة عنوان عائمة محصورة أسفل مسرح الـ 3D بدون تداخل مع الكابتشن
+            // 2) اللقطة الرئيسية في إطار 2.5D عائم يتحرك بزاوية منظور ناعمة (Parallax Depth)
+            const fw = W * 0.76, fh = stageH * 0.76;
+            const fx = (W - fw) / 2, fy = stageTop + stageH * 0.09;
+            const tiltX = Math.sin(progress * Math.PI) * 10;
+            const zoomScale = 1.02 + e * 0.07 + energy * 0.015;
+
+            ctx.save();
+            ctx.translate(W / 2 + tiltX, fy + fh / 2);
+            ctx.rotate((0.5 - progress) * 0.022);
+            ctx.shadowColor = 'rgba(0,0,0,0.75)'; ctx.shadowBlur = 32; ctx.shadowOffsetY = 14;
+            ctx.fillStyle = '#090d16';
+            ctx.beginPath(); ctx.roundRect(-fw / 2, -fh / 2, fw, fh, 14); ctx.fill();
+            ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+            ctx.save();
+            ctx.beginPath(); ctx.roundRect(-fw / 2, -fh / 2, fw, fh, 14); ctx.clip();
+            if (img?.complete && img.naturalWidth > 0) {
+                drawCover(img, -fw / 2, -fh / 2, fw, fh, zoomScale);
+            }
+            const vig = ctx.createLinearGradient(0, -fh / 2, 0, fh / 2);
+            vig.addColorStop(0, 'rgba(0,0,0,0.08)');
+            vig.addColorStop(0.7, 'rgba(0,0,0,0.05)');
+            vig.addColorStop(1, 'rgba(0,0,0,0.68)');
+            ctx.fillStyle = vig; ctx.fillRect(-fw / 2, -fh / 2, fw, fh);
+            ctx.restore();
+
+            ctx.strokeStyle = theme.accent || '#fbbf24';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.roundRect(-fw / 2, -fh / 2, fw, fh, 14); ctx.stroke();
+            ctx.restore();
+
+            ctx.restore();
+
+            // 3) بطاقة عنوان عائمة محصورة أسفل الإطار
             if (titleText) {
-                const fs = Math.max(18, Math.round(W * 0.02));
+                const fs = Math.max(17, Math.round(W * 0.019));
                 ctx.save();
                 ctx.font = `900 ${fs}px Cairo, sans-serif`;
                 const tw = Math.min(W * 0.78, ctx.measureText(titleText).width + 36);
                 const bx = (W - tw) / 2, by = stageBottom - fs - 22;
-                ctx.fillStyle = 'rgba(5,8,17,0.82)'; ctx.beginPath(); ctx.roundRect(bx, by, tw, fs + 16, 10); ctx.fill();
-                ctx.strokeStyle = theme.accent; ctx.lineWidth = 2; ctx.stroke();
-                ctx.fillStyle = theme.accent; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillStyle = 'rgba(5,8,17,0.88)'; ctx.beginPath(); ctx.roundRect(bx, by, tw, fs + 16, 10); ctx.fill();
+                ctx.strokeStyle = theme.accent || '#fbbf24'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.fillStyle = theme.accent || '#fbbf24'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillText(titleText, W / 2, by + (fs + 16) / 2 + 1, tw - 20);
                 ctx.restore();
             }
@@ -3960,7 +3992,12 @@ ${directorRules}
             document.getElementById('movieTitleDisplay').textContent = currentProject.title;
             document.getElementById('topicInput').value = currentProject.title;
             if (currentProject.customStyleName) document.getElementById('activeStyleBadge').textContent = currentProject.customStyleName;
-            currentProject.scenes.forEach(s => { if (s.mediaUrl) getOrLoadImage(s.mediaUrl); });
+            currentProject.scenes.forEach((s, idx) => {
+                if (s.mediaUrl && String(s.mediaUrl).includes('pollinations.ai')) {
+                    s.mediaUrl = makeOfflineScenePoster(`مشهد ${idx + 1}`, (s.sceneTitle || '').slice(0, 26));
+                }
+                if (s.mediaUrl) getOrLoadImage(s.mediaUrl);
+            });
             renderScenesList();
             populateInspector();
             updateSeoPackPanel(currentProject);
@@ -4148,9 +4185,9 @@ ${directorRules}
                     const d = await (await fetch(ep, { headers: { Authorization: key } })).json();
                     items = type === 'video' ? (d.videos || []).map(v => ({ title: `Pexels #${v.id}`, type: 'video', thumb: v.image, url: v.video_files?.[0]?.link })) : (d.photos || []).map(p => ({ title: p.alt || 'Pexels', type: 'image', thumb: p.src?.medium, url: p.src?.large }));
                 } else {
-                    const ep = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' filetype:bitmap')}&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url&iiurlwidth=1024&format=json&origin=*`;
+                    const ep = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q + ' filetype:bitmap')}&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url&iiurlwidth=960&format=json&origin=*`;
                     const d = await (await fetch(ep)).json();
-                    items = Object.values(d?.query?.pages || {}).map(p => ({ title: p.title?.replace(/^File:/, ''), type: 'image', thumb: p.imageinfo?.[0]?.thumburl || p.imageinfo?.[0]?.url, url: p.imageinfo?.[0]?.thumburl || p.imageinfo?.[0]?.url })).filter(x => x.url);
+                    items = Object.values(d?.query?.pages || {}).map(p => ({ title: p.title?.replace(/^File:/, ''), type: 'image', thumb: p.imageinfo?.[0]?.thumburl || p.imageinfo?.[0]?.url, url: p.imageinfo?.[0]?.thumburl || p.imageinfo?.[0]?.url })).filter(x => x.url && !/\.svg$/i.test(x.url));
                 }
                 grid.innerHTML = '';
                 items.forEach(it => {
@@ -4640,5 +4677,5 @@ ${historySnippet ? `سياق المحادثة الأخير:\n${historySnippet}` 
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMobileStudio);
         else initMobileStudio();
     </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a5e456eda8f0f768',t:'MTc5NTMxMjgxNg=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a5e456eda8f0f768',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
